@@ -1,7 +1,7 @@
 from structure.design import StandardizedSdcDesign
 from util import reset_seed, gen_long_constant_bits
 from structure.consts.shared_defaults import DEFAULTS_TCL, DEFAULTS_WRAPPER_CONV
-from structure.consts.shared_requirements import REQUIRED_KEYS_CONV2D_STRIDE
+from structure.consts.shared_requirements import REQUIRED_KEYS_CONV1D_STRIDE
 
 class Conv1dPwDesign(StandardizedSdcDesign):
     """
@@ -12,11 +12,11 @@ class Conv1dPwDesign(StandardizedSdcDesign):
         super().__init__(impl, module_dir, wrapper_module_name)
 
     def get_name(self, data_width: int, img_w: int, img_d: int, fil_w: int, res_d: int, stride_w: int,
-                    constant_weight: bool, sparsity: float, buffer_stages: int, **kwargs):
+                    constant_weight: bool, sparsity: float, **kwargs):
         """
         Name generation 
         """
-        return f'i.{self.impl}_d.{data_width}_w.{img_w}_d.{img_d}_fw.{fil_w}_rd.{res_d}_sw.{stride_w}_c.{constant_weight}_s.{sparsity}_bf.{buffer_stages}'
+        return f'i.{self.impl}_d.{data_width}_w.{img_w}_d.{img_d}_fw.{fil_w}_rd.{res_d}_sw.{stride_w}_c.{constant_weight}_s.{sparsity}'
 
     def verify_params(self, params: dict[str, any]) -> dict[str, any]:
         """
@@ -25,9 +25,9 @@ class Conv1dPwDesign(StandardizedSdcDesign):
         defaults = DEFAULTS_WRAPPER_CONV.copy()
         #remove unused keys
         del defaults['kernel_only']
-        del defaults['separate_filters']
+        del defaults['buffer_stages']
 
-        return self.verify_required_keys(defaults, REQUIRED_KEYS_CONV2D_STRIDE, params)
+        return self.verify_required_keys(defaults, REQUIRED_KEYS_CONV1D_STRIDE, params)
     
     def gen_tcl(self, wrapper_file_name: str, search_path: str, **kwargs) -> str:
         """

@@ -94,7 +94,7 @@ project_close
 
         return template
     
-    def gen_wrapper(self, data_width, img_w, img_d, fil_w, res_d, stride_w, constant_weight, sparsity, buffer_stages, **kwargs) -> str:
+    def gen_wrapper(self, data_width, img_w, img_d, fil_w, res_d, stride_w, constant_weight, sparsity, **kwargs) -> str:
         template_inputx = 'input   logic   [DATA_WIDTH*FILTER_K*IMG_D*FILTER_L-1:0]   weight,'
         if constant_weight:
             inputfil = ''
