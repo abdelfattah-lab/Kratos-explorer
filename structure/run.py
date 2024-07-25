@@ -88,7 +88,10 @@ class Runner():
                 add_to_results(res_dict, out, filter_results)
 
                 print("====================================")
-                print(f"Result {i+1}/{total_count}")
+                result_str = f"Result {i+1}/{total_count}"
+                if track_run_time:
+                    result_str += f" (Time elapsed since start: {timer() - start_time} second(s))"
+                print(result_str)
                 pretty(res_dict, 1)
                 print("====================================")
                 
