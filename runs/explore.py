@@ -34,7 +34,7 @@ BASE_PARAMS = {
     }
 }
 
-def _explore_design_vtr(exp_root_dir: str, design: Design, design_params: dict[str, any]) -> pd.DataFrame:
+def _explore_design_vtr(exp_root_dir: str, design: Design, design_params: dict[str, any], num_parallel_tasks=4) -> pd.DataFrame:
     """
     Explore the BASE_PARAMS provided for a given design and its parameters.
     """
@@ -47,7 +47,7 @@ def _explore_design_vtr(exp_root_dir: str, design: Design, design_params: dict[s
     runner = Runner(ARCH, design, VtrExperiment, params)
     return runner.run_all_threaded(
         desc=exp_root_dir,
-        num_parallel_tasks=12,
+        num_parallel_tasks=num_parallel_tasks,
         filter_params=FILTER_PARAMS,
         filter_results=FILTER_RESULTS
     )
@@ -74,7 +74,7 @@ def explore_conv_1d_pw():
         'fil_w': 3,
         'res_d': 64,
         'stride_w': 1
-    })
+    }, num_parallel_tasks=8)
 
 def explore_conv_2d_fu():
     """

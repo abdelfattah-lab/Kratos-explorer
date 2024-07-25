@@ -12,4 +12,4 @@ if [ -z ${VTR_ROOT} ]; then
 fi
 
 . "${VENV_ROOT_PATH}/bin/activate"
-python $SCRIPT_FILE
+python -u $SCRIPT_FILE # run with unbuffered output (to work with parent bash script's nohup)
