@@ -3,7 +3,7 @@ os.chdir(os.path.dirname(os.path.realpath(__file__))) # change working directory
 
 from structure.run import Runner
 from impl.exp.vtr import VtrExperiment
-from impl.arch.base import BaseArchFactory
+from impl.arch.base_2 import Base2ArchFactory
 from impl.design.gemmt.fu import GemmTFuDesign
 import structure.consts.keys as keys
 
@@ -26,7 +26,7 @@ params = {
 }
 
 runner = Runner(
-    BaseArchFactory(), # concrete ArchFactory
+    Base2ArchFactory(), # concrete ArchFactory
     GemmTFuDesign(),   # concrete Design
     VtrExperiment,     # concrete Experiment
     params             # parameters

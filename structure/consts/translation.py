@@ -8,6 +8,7 @@ TRANSLATIONS_EXP = {
 }
 
 TRANSLATIONS_ARCH = {
+    'ble_count': 'BLE count',
     'CLB_pins_per_group': 'No. of CLB pins per group',
     'num_feedback_ble': 'No. of feedback pins per BLE',
     'lut_size': 'LUT size'

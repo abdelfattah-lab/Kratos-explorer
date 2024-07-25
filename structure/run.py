@@ -44,6 +44,10 @@ class Runner():
 
         @return a Pandas DataFrame with filtered parameters and results.
         """
+        # print experiment count.
+        total_count = len(self.experiments)
+        print(f"Running '{desc}': Found {total_count} experiment(s).")
+
         # log start time.
         start_time = timer()
 
@@ -71,7 +75,6 @@ class Runner():
 
         # track successes
         successes = 0
-        total_count = len(futures_dict)
 
         for i, future in enumerate(as_completed(futures_dict.keys())):
             exp: Experiment = futures_dict[future]
