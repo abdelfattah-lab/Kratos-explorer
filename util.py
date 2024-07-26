@@ -252,16 +252,14 @@ def extract_info_vtr(path='.', extract_blocks_list=['clb', 'fle']) -> dict:
                 if line == '':
                     # reach the end of the block usage table
                     break
-                parts = line.split()
-                for c in extract_blocks_list:
-                    if parts[0] == c:
-                        # try if parts[1] or parts[2] is a number
-                        try:
-                            result_dict[c] = int(parts[1])
-                        except:
-                            result_dict[c] = int(parts[2])
-                        break
-
+                key, val = [x.strip() for x in line.split(':')[:2]]
+                if key in extract_blocks_list:
+                    int_val = val
+                    try:
+                        int_val = int(val)
+                    finally:
+                        result_dict[key] = int_val
+            
         # extract flow status
         if line.startswith('VPR succeeded'):
             result_dict['status'] = True
@@ -272,7 +270,9 @@ def extract_info_vtr(path='.', extract_blocks_list=['clb', 'fle']) -> dict:
             info_left = line[l_colon+1:].strip()
             parts = info_left.split()
             result_dict['cpd'] = float(parts[0])
-            result_dict['fmax'] = float(parts[3])
+            #Fmax will not be shown if CPD is NaN for any reason
+            if len(parts) >= 4:
+                result_dict['fmax'] = float(parts[3])
 
         # extract route channel width
         if line.startswith('Circuit successfully routed with a channel width factor of'):
