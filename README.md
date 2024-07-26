@@ -49,7 +49,7 @@ This folder contains concrete implementations of the interfaces found in `struct
 ### Creating runs
 
 Sample usage can be found in `sample.py`. Some key points to note:
-- A run returns a `pandas.DataFrame`, which then can be used to plot graphs, perform data analysis etc.
+- A run returns a a dictionary of `<experiment root directory>`: `pandas.DataFrame`, which then can be used to plot graphs, perform data analysis etc.
 - You can provide `filter_params` and `filter_results` to the `run_all_threaded()` method to obtain a smaller DataFrame.
 
 ### Parameters
@@ -110,6 +110,7 @@ In general, the resultant final number of experiments run will be `a * b * c * .
 1. Ensure that `run_bg.sh` is executable, i.e., `chmod +x run_bg.sh`
 2. Edit the parameters at the top of `run_bg.sh`:
     - `BASH_RUN_SCRIPT`: directs the script to run *another bash script* in the background.
+    - It is *optional* to make this script executable, since `run_bg.sh` will modify the permissions for you.
     - A sample bash script to use, `run_with_venv.sh`, has been included.
     - Note the **known limitation in terminating the script**, as detailed at the top of this file.
 3. To use the script:
