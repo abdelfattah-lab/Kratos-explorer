@@ -173,18 +173,18 @@ class ExperimentFactory():
     """
     Takes in variable parameters, and generates experiments for each combination of parameters.
     """
-    
-    def __init__(self, arch: ArchFactory, design: Design, experiment_class: Type[E]) -> None:
-        """
-        Provide the ArchFactory, Design and Experiment class to be used for all generated Experiments.
-        """
-        self.arch = arch
-        self.design = design
-        self.experiment_class = experiment_class
 
-    def gen_experiments(self, params: dict[str, any]) -> list[E]:
+    def gen_experiments(self, experiment_class: Type[E], arch: ArchFactory, design: Design, params: dict[str, any]) -> list[E]:
         """
         Searches through the parameters for variable parameters, specified as a list under the original key.
+        
+        Required arguments:
+        * experiment_class:Type[Experiment], concrete Experiment class to use
+        * arch:ArchFactory, concrete ArchFactory to use
+        * design:Design, concrete Design to use
+        * params:dict, parameters to use
+
+        @returns a list of experiment_class objects.
         """
         
         # Step 1: find all variable parameters
@@ -206,7 +206,7 @@ class ExperimentFactory():
         def generate_experiment(i: int, d: dict[str, any]) -> None:
             if i >= variable_params_count:
                 # reached the end of variable parameters; construct, append, return
-                experiments.append(self.experiment_class(self.arch, self.design, d))
+                experiments.append(experiment_class(arch, design, d))
                 return
             
             keys_path, v_list = variable_params[i]

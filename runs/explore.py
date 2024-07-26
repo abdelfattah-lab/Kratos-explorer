@@ -10,11 +10,10 @@ from structure.run import Runner
 from structure.design import Design
 
 import os.path as path
-import pandas as pd
 from copy import deepcopy
 
 FILTER_PARAMS = ['ble_count', 'lut_size', 'sparsity', 'data_width']
-FILTER_RESULTS = ['fmax', 'cpd', 'rcw', 'blocks', 'clb']
+FILTER_RESULTS = ['fmax', 'cpd', 'rcw', 'blocks', 'clb', 'adder']
 
 ARCH = BaseExpArchFactory()
 BASE_PARAMS = {
@@ -34,9 +33,9 @@ BASE_PARAMS = {
     }
 }
 
-def _explore_design_vtr(exp_root_dir: str, design: Design, design_params: dict[str, any], num_parallel_tasks=4) -> pd.DataFrame:
+def _add_to_runner(runner: Runner, exp_root_dir: str, design: Design, design_params: dict[str, any]) -> None:
     """
-    Explore the BASE_PARAMS provided for a given design and its parameters.
+    Add the BASE_PARAMS provided for a given design and its parameters to a runner.
     """
     params = deepcopy(BASE_PARAMS)
     params[keys.KEY_EXP] |= {
@@ -44,19 +43,13 @@ def _explore_design_vtr(exp_root_dir: str, design: Design, design_params: dict[s
     }
     params[keys.KEY_DESIGN] |= design_params
 
-    runner = Runner(ARCH, design, VtrExperiment, params)
-    return runner.run_all_threaded(
-        desc=exp_root_dir,
-        num_parallel_tasks=num_parallel_tasks,
-        filter_params=FILTER_PARAMS,
-        filter_results=FILTER_RESULTS
-    )
+    runner.add_experiments(VtrExperiment, ARCH, design, params)
 
-def explore_conv_1d_fu():
+def explore_conv_1d_fu(runner: Runner):
     """
-    Explore Conv-1D Fully-Unrolled.
+    Add Conv-1D Fully-Unrolled exploration to a Runner.
     """
-    return _explore_design_vtr('conv_1d/fu', Conv1dFuDesign(), {
+    return _add_to_runner(runner, 'conv_1d/fu', Conv1dFuDesign(), {
         'img_w': 8,
         'img_d': 8,
         'fil_w': 3,
@@ -64,23 +57,23 @@ def explore_conv_1d_fu():
         'stride_w': 1
     })
 
-def explore_conv_1d_pw():
+def explore_conv_1d_pw(runner: Runner):
     """
-    Explore Conv-1D Pixel-Wise.
+    Add Conv-1D Pixel-Wise exploration to a Runner.
     """
-    return _explore_design_vtr('conv_1d/pw', Conv1dPwDesign(), {
+    return _add_to_runner(runner, 'conv_1d/pw', Conv1dPwDesign(), {
         'img_w': 32,
         'img_d': 32,
         'fil_w': 3,
         'res_d': 64,
         'stride_w': 1
-    }, num_parallel_tasks=8)
+    })
 
-def explore_conv_2d_fu():
+def explore_conv_2d_fu(runner: Runner):
     """
-    Explore Conv-2D Fully-Unrolled.
+    Add Conv-2D Fully-Unrolled exploration to a Runner.
     """
-    return _explore_design_vtr('conv_2d/fu', Conv2dFuDesign(), {
+    return _add_to_runner(runner, 'conv_2d/fu', Conv2dFuDesign(), {
         'img_w': 8,
         'img_h': 8,
         'img_d': 8,
@@ -91,11 +84,11 @@ def explore_conv_2d_fu():
         'stride_h': 1
     })
 
-def explore_conv_2d_rp():
+def explore_conv_2d_rp(runner: Runner):
     """
-    Explore Conv-2D Row-Parallel.
+    Add Conv-2D Row-Parallel exploration to a Runner.
     """
-    return _explore_design_vtr('conv_2d/rp', Conv2dRpDesign(), {
+    return _add_to_runner(runner, 'conv_2d/rp', Conv2dRpDesign(), {
         'img_w': 8,
         'img_h': 8,
         'img_d': 8,
@@ -106,11 +99,11 @@ def explore_conv_2d_rp():
         'stride_h': 1
     })
 
-def explore_conv_2d_pw():
+def explore_conv_2d_pw(runner: Runner):
     """
-    Explore Conv-2D Pixel-Wise.
+    Add Conv-2D Pixel-Wise exploration to a Runner.
     """
-    return _explore_design_vtr('conv_2d/pw', Conv2dPwDesign(), {
+    return _add_to_runner(runner, 'conv_2d/pw', Conv2dPwDesign(), {
         'img_w': 25,
         'img_h': 25,
         'img_d': 32,
