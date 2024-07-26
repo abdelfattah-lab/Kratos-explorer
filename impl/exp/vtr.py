@@ -98,6 +98,6 @@ class VtrExperiment(Experiment):
         """
         self._preresult_check()
 
-        self.result = extract_info_vtr(os.path.join(self.exp_dir, 'temp'), ['clb', 'fle'])
+        self.result = extract_info_vtr(os.path.join(self.exp_dir, 'temp'), ['clb', 'fle', 'adder'])
         return self.result
 
