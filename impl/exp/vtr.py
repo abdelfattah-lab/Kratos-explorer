@@ -42,6 +42,10 @@ class VtrExperiment(Experiment):
 >>> Dry run completed.""")
             return
         
+        # Check for viable result (i.e., it has been run in the past)
+        if self.get_result()['status']:
+            return
+
         # Find VTR and define command
         vtr_root = os.environ.get('VTR_ROOT')
         if vtr_root is None:
