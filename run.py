@@ -9,10 +9,10 @@ expl.explore_conv_1d_pw(runner)
 
 results = runner.run_all_threaded(
     desc='run_exploration',
-    num_parallel_tasks=3,
+    num_parallel_tasks=2,
     filter_params=expl.FILTER_PARAMS,
     filter_results=expl.FILTER_RESULTS
 )
 
 for k, v in results.items():
-    v.to_csv(f'{k.replace('/', '_')}_results.csv')
+    v.to_csv(f"{k.replace('/', '_')}_results.csv")
