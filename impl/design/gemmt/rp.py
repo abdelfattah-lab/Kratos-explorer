@@ -8,7 +8,8 @@ class GemmTRpDesign(StandardizedSdcDesign):
     GEMMT Row-Parallel design.
     """
 
-    def __init__(self, impl: str = 'mm_bram', module_dir: str = 'gemmt_rp', wrapper_module_name: str = 'mm_bram_wrapper'):
+    # def __init__(self, impl: str = 'mm_bram', module_dir: str = 'gemmt_rp', wrapper_module_name: str = 'mm_bram_wrapper'):
+    def __init__(self, impl: str = 'mm_bram_parallel', module_dir: str = 'gemmt', wrapper_module_name: str = 'mm_bram_parallel_wrapper'):
         super().__init__(impl, module_dir, wrapper_module_name)
 
     def get_name(self, data_width: int, row_num: int, col_num: int, length: int, constant_weight: bool = True, sparsity: float = 0.0, **kwargs):
