@@ -1399,7 +1399,7 @@ def gen_xbars(ble_count, num_pins_ble, num_feedback_ble, clb_input_groups = ['I1
 
 """
 configurable parameters, all integer
-*num_feedback_ble = 5
+*frac_feedback_ble = 0.5
 *lut_size = 6
 - lut_size_small = lut_size - 1
 - lut_size_large = lut_size
@@ -1407,13 +1407,19 @@ configurable parameters, all integer
 
 # create xml parameters
 """
-def generate_arch(ble_count: int, num_feedback_ble: int, lut_size: int) -> str:
+def generate_arch(ble_count: int, frac_feedback_ble: float, lut_size: int) -> str:
     config_dict = {}
     lut_size_small = lut_size - 1
     lut_size_large = lut_size
 
     # CLB
-    CLB_pins_per_group = round(lut_size * (ble_count + 1) / 2) # using empirical formula K(N+1)/2
+    # CLB_pins_total = round(lut_size * (ble_count + 1) / 2) # using empirical formula K(N+1)/2
+    CLB_pins_total = round(lut_size_small * (ble_count + 0.5)) # using empirical formula K'(N'+1)/2, with K' = K - 1, N' = 2N
+    CLB_rem = CLB_pins_total % 4
+    if CLB_rem > 0:
+      # round up to nearest multiple of 4
+      CLB_pins_total += 4 - CLB_rem
+    CLB_pins_per_group = int(CLB_pins_total / 4)
     num_opins_clb = ble_count * 2 # output pins
     config_dict['num_pins_clb'] = CLB_pins_per_group
     config_dict['num_opins_clb'] = num_opins_clb
@@ -1439,9 +1445,10 @@ def generate_arch(ble_count: int, num_feedback_ble: int, lut_size: int) -> str:
     config_dict['lutSinter_to_ble_pin_2'] = f"{num_pins_small-1}:{num_pins_small-lut_size_small}"
     
     # arithmetic
-    config_dict['arithmetic_num_pins'] = str(min(4, lut_size_small))
-    config_dict['arithmetic_pin_index'] = str(min(4, lut_size_small)-1) + ':0'
-    config_dict['arith_lut_delat_mat'] = '\n'.join(['195e-12'] * min(4, lut_size_small))
+    num_pins_arithmetic = max(2, lut_size_small - 1) # ensure a minimum of 2 pins for arithmetic
+    config_dict['arithmetic_num_pins'] = str(num_pins_arithmetic)
+    config_dict['arithmetic_pin_index'] = str(num_pins_arithmetic - 1) + ':0'
+    config_dict['arith_lut_delat_mat'] = '\n'.join(['195e-12'] * num_pins_arithmetic)
 
     # large lut
     config_dict['num_pins_lutL'] = lut_size_large
@@ -1449,6 +1456,7 @@ def generate_arch(ble_count: int, num_feedback_ble: int, lut_size: int) -> str:
     config_dict['fle_to_bleL_pin_index'] = str(lut_size_large-1) + ':0'
 
     # 50% depop xbar
+    num_feedback_ble = round(ble_count * frac_feedback_ble) # take feedback BLE count
     config_dict['fle_input_xbar'] = gen_xbars(ble_count, num_pins_ble, num_feedback_ble, clb_input_groups_per_xbar=2)
 
     out = TEMPLATE.format(**config_dict)
@@ -1458,7 +1466,7 @@ def generate_arch(ble_count: int, num_feedback_ble: int, lut_size: int) -> str:
 # Specify the parameters and their default values for this architecture here.
 DEFAULTS = {
     'ble_count': 10,
-    'num_feedback_ble': 5,
+    'frac_feedback_ble': 0.5,
     'lut_size': 6
 }
 
