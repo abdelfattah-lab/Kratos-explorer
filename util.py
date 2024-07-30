@@ -214,9 +214,11 @@ def extract_info_vtr(path='.', extract_blocks_list=['clb', 'fle']) -> dict:
 
     result_dict = {}
     result_dict['status'] = False
-    result_dict['fmax'] = -1.0
-    result_dict['cpd'] = -1.0
-    result_dict['rcw'] = 999999
+    result_dict['fmax'] = -1.0      # max frequency, MHz
+    result_dict['cpd'] = -1.0       # critical path delay, ns
+    result_dict['rcw'] = 999999     # route channel width
+    result_dict['area_le'] = -1.0   # used area of logic only, in MWTAs
+    result_dict['area_r'] = -1.0    # used area of routing, in MWTAs 
     result_dict['foutm'] = 0        # max fanout
     result_dict['fouta'] = 0        # average fanout
     result_dict['gridx'] = 0        # number of grid on x
@@ -281,6 +283,14 @@ def extract_info_vtr(path='.', extract_blocks_list=['clb', 'fle']) -> dict:
             parts = line.split()
             result_dict['rcw'] = int(parts[-1])
 
+        # extract areas
+        if line.lstrip().startswith('Total used logic block area'):
+            # Logic area
+            result_dict['area_le'] = float(line.split(':')[-1].strip())
+        if line.lstrip().startswith('Total routing area'):
+            # Routing area
+            result_dict['area_r'] = float(line.split(':')[-1].strip())
+        
         # extract fanout
         if line.startswith('Max Fanout'):
             parts = line.split()
