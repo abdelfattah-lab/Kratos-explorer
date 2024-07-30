@@ -38,6 +38,7 @@ def gen_time_elapsed(seconds: float, dp: int = 3) -> str:
     hrs = int(mins // 60)
     days = int(hrs // 24)
 
+    seconds -= mins * 60
     mins -= hrs * 60
     hrs -= days * 24
 
