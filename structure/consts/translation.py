@@ -4,13 +4,16 @@ Provides key translations, i.e., parameter names to human-readable labels.
 
 TRANSLATIONS_EXP = {
     'root_dir': 'Experiment root directory',
-    'verilog_search_dir': 'SystemVerilog search directory'
+    'verilog_search_dir': 'SystemVerilog search directory',
+    'stdout_file': 'stdout file',
+    'stderr_file': 'stderr file'
 }
 
 TRANSLATIONS_ARCH = {
     'ble_count': 'BLE count',
     'CLB_pins_per_group': 'No. of CLB pins per group',
-    'num_feedback_ble': 'No. of feedback pins per BLE',
+    'num_feedback_ble': 'No. of feedback BLEs per CLB',
+    'frac_feedback_ble': 'Fraction of feedback BLEs per CLB',
     'lut_size': 'LUT size'
 }
 
@@ -30,6 +33,7 @@ TRANSLATIONS_DESIGN = {
     'res_d': 'Result depth',
     'stride_w': 'Stride width',
     'stride_h': 'Stride height',
+    'separate_filters': 'Separate filters',
     'buffer_stages': 'Buffer stages',
     
     #GEMM
