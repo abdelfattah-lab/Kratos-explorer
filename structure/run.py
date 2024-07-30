@@ -1,7 +1,7 @@
 from structure.exp import Experiment, ExperimentFactory
 from structure.arch import ArchFactory
 from structure.design import Design
-from util import pretty
+from util import pretty, gen_time_elapsed
 
 import os
 from timeit import default_timer as timer
@@ -108,7 +108,7 @@ class Runner():
                 print("====================================")
                 print(f"Result {i+1}/{total_count}")
                 if track_run_time:
-                    result_str += f" (Time elapsed for this experiment: {(timer() - exp_start_times[exp.exp_dir]):.3f} second(s))"
+                    print(f" (Time elapsed for this experiment: {gen_time_elapsed(timer() - exp_start_times[exp.exp_dir])})")
                 pretty(res_dict, 1)
                 print("====================================")
                 
@@ -135,7 +135,7 @@ class Runner():
         print(top_line)
         print(f"Total: {total_count}, of which {successes} succeeded ({(successes / total_count * 100):.2f}%).")
         if track_run_time:
-            print(f"Run time: {(timer() - start_time):.3f} second(s).")
+            print(f"Run time: {gen_time_elapsed(timer() - start_time)}.")
         print("*" * len(top_line))
 
         return { k: pd.DataFrame.from_records(v) for k, v in results.items() }

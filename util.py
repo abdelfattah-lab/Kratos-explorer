@@ -27,6 +27,29 @@ COLOR_LIST_DEFAULT = [
     ['#78c679', '#c2e699', '#238443']
 ]
 
+def gen_time_elapsed(seconds: float, dp: int = 3) -> str:
+    """
+    Returns a string of hours, minutes, seconds from given seconds.
+
+    Optional arguments:
+    * dp:int, decimal places to round seconds to.
+    """
+    mins = int(seconds // 60)
+    hrs = int(mins // 60)
+    days = int(hrs // 24)
+
+    mins -= hrs * 60
+    hrs -= days * 24
+
+    ret = f"{round(seconds, ndigits=dp)} second(s)"
+    if mins > 0:
+        ret = f"{mins} minute(s), {ret}"
+    if hrs > 0:
+        ret = f"{hrs} hour(s), {ret}"
+    if days > 0:
+        ret = f"{days} day(s), {ret}"
+    
+    return ret
 
 def plot_trend(mat_list: list[np.ndarray], labels: list[str], color_list=COLOR_LIST_DEFAULT, xlabel='', ylabel='', title='', save_name=''):
     assert len(mat_list) == len(labels)
