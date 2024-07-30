@@ -45,68 +45,71 @@ def _add_to_runner(runner: Runner, exp_root_dir: str, design: Design, design_par
 
     runner.add_experiments(VtrExperiment, ARCH, design, params)
 
-def explore_conv_1d_fu(runner: Runner):
+def explore_conv_1d_fu(runner: Runner, exp_root_dir: str = 'conv_1d/fu', is_L: bool = False):
     """
     Add Conv-1D Fully-Unrolled exploration to a Runner.
     """
-    return _add_to_runner(runner, 'conv_1d/fu', Conv1dFuDesign(), {
-        'img_w': 8,
-        'img_d': 8,
+    d = 16 if is_L else 8
+    return _add_to_runner(runner, exp_root_dir, Conv1dFuDesign(), {
+        'img_w': 32,
+        'img_d': d,
         'fil_w': 3,
-        'res_d': 8,
+        'res_d': d,
         'stride_w': 1
     })
 
-def explore_conv_1d_pw(runner: Runner):
+def explore_conv_1d_pw(runner: Runner, exp_root_dir: str = 'conv_1d/pw', is_L: bool = False):
     """
     Add Conv-1D Pixel-Wise exploration to a Runner.
     """
-    return _add_to_runner(runner, 'conv_1d/pw', Conv1dPwDesign(), {
+    return _add_to_runner(runner, exp_root_dir, Conv1dPwDesign(), {
         'img_w': 32,
-        'img_d': 32,
+        'img_d': 64,
         'fil_w': 3,
-        'res_d': 64,
+        'res_d': 128 if is_L else 64,
         'stride_w': 1
     })
 
-def explore_conv_2d_fu(runner: Runner):
+def explore_conv_2d_fu(runner: Runner, exp_root_dir: str = 'conv_2d/fu', is_L: bool = False):
     """
     Add Conv-2D Fully-Unrolled exploration to a Runner.
     """
-    return _add_to_runner(runner, 'conv_2d/fu', Conv2dFuDesign(), {
+    d = 8 if is_L else 4
+    return _add_to_runner(runner, exp_root_dir, Conv2dFuDesign(), {
         'img_w': 8,
         'img_h': 8,
-        'img_d': 8,
+        'img_d': d,
         'fil_w': 3,
         'fil_h': 3,
-        'res_d': 8,
+        'res_d': d,
         'stride_w': 1,
         'stride_h': 1
     })
 
-def explore_conv_2d_rp(runner: Runner):
+def explore_conv_2d_rp(runner: Runner, exp_root_dir: str = 'conv_2d/rp', is_L: bool = False):
     """
     Add Conv-2D Row-Parallel exploration to a Runner.
     """
-    return _add_to_runner(runner, 'conv_2d/rp', Conv2dRpDesign(), {
+    d = 16 if is_L else 8
+    return _add_to_runner(runner, exp_root_dir, Conv2dRpDesign(), {
         'img_w': 8,
         'img_h': 8,
-        'img_d': 8,
+        'img_d': d,
         'fil_w': 3,
         'fil_h': 3,
-        'res_d': 8,
+        'res_d': d,
         'stride_w': 1,
         'stride_h': 1
     })
 
-def explore_conv_2d_pw(runner: Runner):
+def explore_conv_2d_pw(runner: Runner, exp_root_dir: str = 'conv_2d/pw', is_L: bool = False):
     """
     Add Conv-2D Pixel-Wise exploration to a Runner.
     """
-    return _add_to_runner(runner, 'conv_2d/pw', Conv2dPwDesign(), {
+    return _add_to_runner(runner, exp_root_dir, Conv2dPwDesign(), {
         'img_w': 25,
         'img_h': 25,
-        'img_d': 32,
+        'img_d': 64 if is_L else 32,
         'fil_w': 3,
         'fil_h': 3,
         'res_d': 64,
