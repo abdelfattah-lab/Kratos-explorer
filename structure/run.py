@@ -62,9 +62,15 @@ class Runner():
 
         # log start time.
         start_time = timer()
+        exp_start_times = {}
 
         # runnable
         def run_experiment(exp: Experiment) -> dict:
+            if track_run_time:
+                # log start time of experiment
+                nonlocal exp_start_times
+                exp_start_times[exp.exp_dir] = timer()
+
             exp.run(**kwargs)
             exp.wait()
             return exp.get_full_params(), exp.get_result()
@@ -100,10 +106,9 @@ class Runner():
                 add_to_results(res_dict, out, filter_results)
 
                 print("====================================")
-                result_str = f"Result {i+1}/{total_count}"
+                print(f"Result {i+1}/{total_count}")
                 if track_run_time:
-                    result_str += f" (Time elapsed since start: {(timer() - start_time):.3f} second(s))"
-                print(result_str)
+                    result_str += f" (Time elapsed for this experiment: {(timer() - exp_start_times[exp.exp_dir]):.3f} second(s))"
                 pretty(res_dict, 1)
                 print("====================================")
                 
