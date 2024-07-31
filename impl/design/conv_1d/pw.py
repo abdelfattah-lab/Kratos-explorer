@@ -1,5 +1,5 @@
 from structure.design import StandardizedSdcDesign
-from util import reset_seed, gen_long_constant_bits
+from util.flow import reset_seed, gen_long_constant_bits
 from structure.consts.shared_defaults import DEFAULTS_TCL, DEFAULTS_WRAPPER_CONV
 from structure.consts.shared_requirements import REQUIRED_KEYS_CONV1D_STRIDE
 
