@@ -1,3 +1,7 @@
+"""
+Convenience functions for data extraction from external tool reports (e.g., Quartus, VTR).
+"""
+
 import re, os
 
 def extract_info_quartus(path='.'):

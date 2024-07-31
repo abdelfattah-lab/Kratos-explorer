@@ -1,3 +1,7 @@
+"""
+Convenience functions for plotting results.
+"""
+
 import matplotlib.pyplot as plt
 from matplotlib import cm
 from matplotlib.axes import Axes

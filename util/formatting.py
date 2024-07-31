@@ -1,3 +1,7 @@
+"""
+Convenience functions for formatting into strings.
+"""
+
 from io import StringIO
 
 def gen_time_elapsed(seconds: float, dp: int = 3) -> str:
