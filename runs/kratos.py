@@ -1,3 +1,7 @@
+"""
+Experiments to simulate Kratos benchmarks.
+"""
+
 import structure.consts.keys as keys
 from impl.arch.base_exp import BaseExpArchFactory
 from impl.design.conv_1d.fu import Conv1dFuDesign
@@ -5,6 +9,10 @@ from impl.design.conv_1d.pw import Conv1dPwDesign
 from impl.design.conv_2d.fu import Conv2dFuDesign
 from impl.design.conv_2d.rp import Conv2dRpDesign
 from impl.design.conv_2d.pw import Conv2dPwDesign
+from impl.design.gemmt.fu import GemmTFuDesign
+from impl.design.gemmt.rp import GemmTRpDesign
+from impl.design.gemms import GemmSDesign
+
 from impl.exp.vtr import VtrExperiment
 from structure.run import Runner
 from structure.design import Design
@@ -21,13 +29,10 @@ BASE_PARAMS = {
         'verilog_search_dir': path.join(path.dirname(path.realpath(__file__)), '../verilog')
     },
     keys.KEY_ARCH: {
-        'ble_count': [10, 15, 20, 25, 30],
+        'ble_count': 10,
         'lut_size': [3, 4, 5, 6]
-        # 'lut_size': 5
     },
     keys.KEY_DESIGN: {
-        # 'sparsity': 0,
-        # 'data_width': 8
         'sparsity': [0, 0.5, 0.9],
         'data_width': [4, 8]
     }
@@ -115,4 +120,37 @@ def explore_conv_2d_pw(runner: Runner, exp_root_dir: str = 'conv_2d/pw', is_L: b
         'res_d': 64,
         'stride_w': 1,
         'stride_h': 1
+    })
+
+def explore_gemmt_fu(runner: Runner, exp_root_dir: str = 'gemmt/fu', is_L: bool = False):
+    """
+    Add GEMM-T Fully-Unrolled exploration to a Runner.
+    """
+    size = 32 if is_L else 16
+    return _add_to_runner(runner, exp_root_dir, GemmTFuDesign(), {
+        'row_num': size,
+        'col_num': size,
+        'length': size
+    })
+
+def explore_gemmt_rp(runner: Runner, exp_root_dir: str = 'gemmt/rp', is_L: bool = False):
+    """
+    Add GEMM-T Fully-Unrolled exploration to a Runner.
+    """
+    size = 128 if is_L else 32
+    return _add_to_runner(runner, exp_root_dir, GemmTRpDesign(), {
+        'row_num': size,
+        'col_num': size,
+        'length': size
+    })
+
+def explore_gemms(runner: Runner, exp_root_dir: str = 'gemms', is_L: bool = False):
+    """
+    Add GEMM-S exploration to a Runner.
+    """
+    size = 128 if is_L else 16
+    return _add_to_runner(runner, exp_root_dir, GemmSDesign(), {
+        'row_num': size,
+        'col_num': size,
+        'length': size
     })
