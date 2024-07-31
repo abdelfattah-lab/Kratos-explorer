@@ -69,7 +69,7 @@ class Runner():
             if track_run_time:
                 # log start time of experiment
                 nonlocal exp_start_times
-                exp_start_times[exp.exp_dir] = timer()
+                exp_start_times[exp] = timer()
 
             exp.run(**kwargs)
             exp.wait()
@@ -108,7 +108,7 @@ class Runner():
                 print("====================================")
                 print(f"Result {i+1}/{total_count}")
                 if track_run_time:
-                    print(f" (Time elapsed for this experiment: {gen_time_elapsed(timer() - exp_start_times[exp.exp_dir])})")
+                    print(f" (Time elapsed for this experiment: {gen_time_elapsed(timer() - exp_start_times[exp])})")
                 pretty(res_dict, 1)
                 print("====================================")
                 

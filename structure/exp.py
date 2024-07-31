@@ -1,4 +1,4 @@
-from structure.util import ParamsChecker
+from structure.util import ParamsChecker, Hashable
 from structure.arch import ArchFactory
 from structure.design import Design
 import structure.consts.keys as keys
@@ -10,13 +10,14 @@ from copy import deepcopy
 from typing import Type, TypeVar, Callable
 from tabulate import tabulate
 
-class Experiment(ParamsChecker):
+class Experiment(ParamsChecker, Hashable):
     """
     {abstract}
     Experiment meant to be run by a structure.run.Runner.
     """
 
     def __init__(self, arch: ArchFactory, design: Design, params: dict[str, dict[str, any]]) -> None:
+        super().__init__()
         """
         Takes in an ArchFactory, Design, and a full set of Experiment parameters (meant to be split for different subclasses).
         """
