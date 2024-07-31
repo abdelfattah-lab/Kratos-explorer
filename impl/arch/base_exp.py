@@ -1407,7 +1407,7 @@ configurable parameters, all integer
 
 # create xml parameters
 """
-def generate_arch(ble_count: int, frac_feedback_ble: float, lut_size: int) -> str:
+def generate_arch(ble_count: int, num_feedback_ble: int, lut_size: int) -> str:
     config_dict = {}
     lut_size_small = lut_size - 1
     lut_size_large = lut_size
@@ -1456,7 +1456,6 @@ def generate_arch(ble_count: int, frac_feedback_ble: float, lut_size: int) -> st
     config_dict['fle_to_bleL_pin_index'] = str(lut_size_large-1) + ':0'
 
     # 50% depop xbar
-    num_feedback_ble = round(ble_count * frac_feedback_ble) # take feedback BLE count
     config_dict['fle_input_xbar'] = gen_xbars(ble_count, num_pins_ble, num_feedback_ble, clb_input_groups_per_xbar=2)
 
     out = TEMPLATE.format(**config_dict)
@@ -1466,7 +1465,7 @@ def generate_arch(ble_count: int, frac_feedback_ble: float, lut_size: int) -> st
 # Specify the parameters and their default values for this architecture here.
 DEFAULTS = {
     'ble_count': 10,
-    'frac_feedback_ble': 0.5,
+    'num_feedback_ble': 5,
     'lut_size': 6
 }
 
