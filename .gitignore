@@ -15,6 +15,7 @@ results*/
 .vscode
 experiments.zip
 *.csv
+test_*.py
 
 # used for background execution
 *.out
