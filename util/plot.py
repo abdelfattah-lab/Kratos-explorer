@@ -210,8 +210,8 @@ def plot_xy(
         )
         legend_handles.append(legend_line)
 
-    for df, (axes_iy, axes_ix) in zip(subplot_dfs, np.ndindex(axes.shape)):
-        ax = axes[axes_iy, axes_ix]
+    for df, ax_i in zip(subplot_dfs, np.ndindex(axes.shape)):
+        ax = axes[ax_i]
         if subplots_identifiers is not None:
             ax.set_title(get_identifiers_label(subplots_identifiers, df=df))
         
