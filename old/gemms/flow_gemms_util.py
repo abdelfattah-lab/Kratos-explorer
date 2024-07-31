@@ -1,7 +1,7 @@
 # flow script V2.0
 # uses design in systolic_ws for matrix multiplication, available implementations: ['systolic_ws']
 
-from util.plot import plot_result
+from util.plot import plot_result_3d
 from util.flow import gen_result_table, generate_random_matrix, bark, reset_seed, check_and_fill_defaults
 import os
 import numpy as np

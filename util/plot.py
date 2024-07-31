@@ -56,7 +56,7 @@ def plot_trend(mat_list: list[np.ndarray], labels: list[str], color_list=COLOR_L
     plt.close()
 
 
-def plot_result(axis1, axis2, datapoints, description1='', description2='', description3='', title='', save_name='', elevation=25, azimuth=-145, alpha=1.0):
+def plot_result_3d(axis1, axis2, datapoints, description1='', description2='', description3='', title='', save_name='', elevation=25, azimuth=-145, alpha=1.0):
     fig = plt.figure()
     ax = fig.add_subplot(111, projection='3d')
 

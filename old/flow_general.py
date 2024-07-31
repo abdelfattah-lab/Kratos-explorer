@@ -314,9 +314,9 @@ def batch_run(flow, settings, num_parallel_tasks=1, flow_runner: QuartusRunner |
     fname = util.flow.gen_dict_file_name(setting_remain)
     tname = util.flow.gen_dict_title(setting_remain)
     # plot results
-    util.plot.plot_result(sparsity_list, data_width_list, rfmaxs, description1='sparsity', description2='data width', description3='restricted fmax (MHz)',
+    util.plot.plot_result_3d(sparsity_list, data_width_list, rfmaxs, description1='sparsity', description2='data width', description3='restricted fmax (MHz)',
                      title=f'fmax vs sparsity and data width\n{tname}', save_name=os.path.join(flow.DEFAULT_RESULT_DIR, f'fmax_{fname}.png'), azimuth=125)
-    util.plot.plot_result(sparsity_list, data_width_list, alms, description1='sparsity', description2='data width', description3='ALMs',
+    util.plot.plot_result_3d(sparsity_list, data_width_list, alms, description1='sparsity', description2='data width', description3='ALMs',
                      title=f'ALMs vs sparsity and data width\n{tname}', save_name=os.path.join(flow.DEFAULT_RESULT_DIR, f'alms_{fname}.png'), azimuth=-55)
     # save results in txt
     with open(os.path.join(flow.DEFAULT_RESULT_DIR, f'fmax_{fname}.txt'), 'w') as f:
@@ -394,9 +394,9 @@ def batch_run_arch(flow, settings, num_parallel_tasks=8):
     fname = util.flow.gen_dict_file_name(setting_remain)
     tname = util.flow.gen_dict_title(setting_remain)
     # plot results
-    util.plot.plot_result(num_feedback_ble_list, lut_size_list, rfmaxs, description1='num_feedback_ble', description2='lut_size', description3='restricted fmax (MHz)',
+    util.plot.plot_result_3d(num_feedback_ble_list, lut_size_list, rfmaxs, description1='num_feedback_ble', description2='lut_size', description3='restricted fmax (MHz)',
                      title=f'fmax vs num_feedback_ble and lut_size\n{tname}', save_name=os.path.join(flow.DEFAULT_RESULT_DIR, f'fmax_{fname}.png'), azimuth=125)
-    util.plot.plot_result(num_feedback_ble_list, lut_size_list, alms, description1='num_feedback_ble', description2='lut_size', description3='ALMs',
+    util.plot.plot_result_3d(num_feedback_ble_list, lut_size_list, alms, description1='num_feedback_ble', description2='lut_size', description3='ALMs',
                      title=f'ALMs vs num_feedback_ble and lut_size\n{tname}', save_name=os.path.join(flow.DEFAULT_RESULT_DIR, f'alms_{fname}.png'), azimuth=-55)
     # save results in txt
     with open(os.path.join(flow.DEFAULT_RESULT_DIR, f'fmax_{fname}.txt'), 'w') as f:
