@@ -168,7 +168,7 @@ def plot_xy(
         # favor portrait layout
         subplot_rows = max(side1, side2)
         subplot_cols = min(side1, side2)
-        print(subplot_count, side1, side2)
+
         # create subplots
         fig, axes = plt.subplots(nrows=subplot_rows, ncols=subplot_cols, figsize=(8,8))
     else:
@@ -186,9 +186,10 @@ def plot_xy(
     markers = cycle(markers)
     colors = cycle(cm.rainbow(np.linspace(0, 1, len(unique_groups))))
 
-    # Set up legend handles
-    legend_handles = [Line2D([0], [0], color='black', label=y_axis_label)]
+    # Set up y-axis legends only if necessary
+    legend_handles = []
     if y_axis_col_secondary is not None:
+        legend_handles.append(Line2D([0], [0], color='black', label=y_axis_label))
         legend_handles.append(Line2D([0], [0], color='black', linestyle='dotted', label=y_axis_label_secondary))
     
     # set colors and markers for all combinations of group identifiers used across all subplots.
