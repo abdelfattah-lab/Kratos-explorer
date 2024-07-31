@@ -13,8 +13,6 @@ __pycache__/
 experiments*/
 results*/
 .vscode
-flow.py
-flow2.py
 experiments.zip
 *.csv
 

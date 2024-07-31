@@ -1,6 +1,7 @@
 from structure.exp import Experiment
 from structure.consts.shared_requirements import REQUIRED_KEYS_EXP
-from util import extract_info_vtr, start_dependent_process
+from util.extract import extract_info_vtr
+from util.flow import start_dependent_process
 
 import os
 import subprocess

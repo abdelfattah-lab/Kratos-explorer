@@ -1,7 +1,7 @@
 from structure.exp import Experiment, ExperimentFactory
 from structure.arch import ArchFactory
 from structure.design import Design
-from util import pretty, gen_time_elapsed
+from util.formatting import pretty, gen_time_elapsed
 
 import os
 from timeit import default_timer as timer

@@ -1,5 +1,5 @@
 from structure.design import StandardizedSdcDesign
-from util import reset_seed, generate_random_matrix
+from util.flow import reset_seed, generate_random_matrix
 from structure.consts.shared_defaults import DEFAULTS_TCL, DEFAULTS_WRAPPER
 from structure.consts.shared_requirements import REQUIRED_KEYS_GEMM
 
