@@ -227,6 +227,9 @@ def plot_xy(
         groups = [y for _, y in df.groupby(group_identifiers, as_index=False)]
 
         for grp in groups:
+            # sort group by x-axis
+            grp.sort_values(by=[x_axis_col], inplace=True)
+
             marker, color = attr_map[tuple(grp[col].unique()[0] for col in group_identifiers)]
             grp.plot(x=x_axis_col, y=y_axis_col, kind='line', linestyle='solid', marker=marker, color=color, ax=ax)
             if y_axis_col_secondary is not None:
