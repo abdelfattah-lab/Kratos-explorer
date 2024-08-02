@@ -11,7 +11,7 @@ class VtrExperiment(Experiment):
     VTR implementation of an Experiment.
     """
 
-    def run(self, clean=True, dry_run=False, ending=None, seed=1127, **kwargs) -> None:
+    def run(self, clean=True, dry_run=False, ending=None, seed=1127, allow_skipping=False, avoid_mult=True, **kwargs) -> None:
         """
         Run on VTR.
 
@@ -19,6 +19,8 @@ class VtrExperiment(Experiment):
         clean: if True, zip the temp files after VTR finishes to save space
         ending: ending stage of VTR, if None, run the whole flow, options: 'parmys', 'vpr'
         seed: random seed for VTR
+        allow_skipping: if True, then the experiment is skipped if the folder already exists with valid results
+        avoid_mult: if True, then avoids using hard multipliers
         """
         self._prerun_check()
 
@@ -44,7 +46,8 @@ class VtrExperiment(Experiment):
             return
         
         # Check for viable result (i.e., it has been run in the past)
-        if self.get_result()['status']:
+        if allow_skipping and self.get_result()['status']:
+            print(f"skipped: allow_skipping was {allow_skipping}")
             return
 
         # Find VTR and define command
@@ -54,6 +57,8 @@ class VtrExperiment(Experiment):
         vtr_script_path = os.path.join(vtr_root, 'vtr_flow/scripts/run_vtr_flow.py')
         cmd = ['python', vtr_script_path, wrapper_file_name, arch_file_name,
                '-parser', 'system-verilog', '-top', self.design.wrapper_module_name, '-search', self.verilog_search_dir, '--seed', str(seed)]
+        if avoid_mult:
+            cmd += ['-min_hard_mult_size', '9999'] # arbitrarily large multiplier size
         if ending is not None:
             cmd += ['-ending_stage', ending]
         
@@ -103,6 +108,6 @@ class VtrExperiment(Experiment):
         """
         self._preresult_check()
 
-        self.result = extract_info_vtr(os.path.join(self.exp_dir, 'temp'), ['clb', 'fle', 'adder'])
+        self.result = extract_info_vtr(os.path.join(self.exp_dir, 'temp'), ['clb', 'fle', 'adder', 'mult_36'])
         return self.result
 
