@@ -9,6 +9,8 @@ import numpy as np
 import pandas as pd
 import random
 import subprocess, signal, ctypes
+from itertools import combinations
+from collections import Counter
 
 random.seed(114514)
 
@@ -69,6 +71,47 @@ def reset_seed(n=114514):
     random.seed(n)
     np.random.seed(n)
 
+def distribute_pins(total_pins, pins_per_group, group_num):
+    all_combinations = list(combinations(range(total_pins), pins_per_group))
+
+    # If the number of all possible combinations is less than group_num, return all of them
+    if len(all_combinations) <= group_num:
+        return all_combinations
+
+    # Initialize a list to hold the final groups
+    final_groups = []
+
+    # Initialize a counter to keep track of how many times each pin has been used
+    pin_usage = Counter()
+
+    # While we haven't yet created the desired number of groups
+    while len(final_groups) < group_num:
+        # Find the pin that has been used the least
+        least_used_pin = min(pin_usage, key=lambda pin: (pin_usage[pin], pin), default=0)
+
+        # Initialize a variable to keep track of the best group so far
+        best_group = None
+        best_group_usage = float('inf')
+
+        # For each possible combination
+        for combination in all_combinations:
+            # If this combination contains the least used pin
+            if least_used_pin in combination:
+                # Calculate the total usage of this combination
+                group_usage = sum(pin_usage[pin] for pin in combination)
+                # If this combination is better than the best so far, update the best so far
+                if group_usage < best_group_usage:
+                    best_group = combination
+                    best_group_usage = group_usage
+
+        # Add the best group to the final groups
+        final_groups.append(list(best_group))
+        # Update the pin usage counter
+        pin_usage.update(best_group)
+        # Remove the used combination from the list of all combinations
+        all_combinations.remove(best_group)
+
+    return final_groups
 
 def generate_specific_array(length, data_width, value):
     params = np.zeros((length), dtype=int)
