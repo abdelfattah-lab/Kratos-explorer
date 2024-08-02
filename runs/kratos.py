@@ -3,7 +3,7 @@ Experiments to simulate Kratos benchmarks.
 """
 
 import structure.consts.keys as keys
-from impl.arch.base_exp import BaseExpArchFactory
+from impl.arch.gen_exp import GenExpArchFactory
 from impl.design.conv_1d.fu import Conv1dFuDesign
 from impl.design.conv_1d.pw import Conv1dPwDesign
 from impl.design.conv_2d.fu import Conv2dFuDesign
@@ -23,7 +23,7 @@ from copy import deepcopy
 FILTER_PARAMS = ['ble_count', 'lut_size', 'sparsity', 'data_width']
 FILTER_RESULTS = ['fmax', 'cpd', 'rcw', 'blocks', 'clb', 'adder']
 
-ARCH = BaseExpArchFactory()
+ARCH = GenExpArchFactory()
 BASE_PARAMS = {
     keys.KEY_EXP: {
         'verilog_search_dir': path.join(path.dirname(path.realpath(__file__)), '../verilog')
