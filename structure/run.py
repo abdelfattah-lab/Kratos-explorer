@@ -109,6 +109,8 @@ class Runner():
                 print(f"Result {i+1}/{total_count}")
                 if track_run_time:
                     print(f" (Time elapsed for this experiment: {gen_time_elapsed(timer() - exp_start_times[exp])})")
+                
+                print(f"@ root directory {exp.root_dir}")
                 pretty(res_dict, 1)
                 print("====================================")
                 
