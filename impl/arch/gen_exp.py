@@ -1,8 +1,7 @@
 from structure.arch import ArchFactory
 from structure.util import ParamsChecker
-from itertools import combinations
-from collections import Counter
-from math import floor
+from math import floor, comb
+from util.flow import distribute_pins
 
 TEMPLATE = '''<!-- Comments are removed to save file size -->
 <architecture>
@@ -285,170 +284,152 @@ TEMPLATE = '''<!-- Comments are removed to save file size -->
         <clock name="clk" num_pins="1"/>
         <!-- Start: n2_lutS -->
         <mode name="n2_lutS" disable_packing="False">
-          <pb_type name="lutSinter" num_pb="1">
-            <input name="in" num_pins="{num_pins_lutSinter}"/>
+          <pb_type name="bleS" num_pb="2">
+            <input name="in" num_pins="{num_pins_bleS}"/>
             <input name="cin" num_pins="1"/>
-            <output name="out" num_pins="2"/>
+            <output name="out" num_pins="1"/>
             <output name="cout" num_pins="1"/>
             <clock name="clk" num_pins="1"/>
-            <pb_type name="bleS" num_pb="2">
-              <input name="in" num_pins="{num_pins_lutS}"/>
-              <input name="cin" num_pins="1"/>
-              <output name="out" num_pins="1"/>
-              <output name="cout" num_pins="1"/>
-              <clock name="clk" num_pins="1"/>
-              <mode name="blutS">
-                <pb_type name="flutS" num_pb="1">
-                  <input name="in" num_pins="{num_pins_lutS}"/>
-                  <output name="out" num_pins="1"/>
-                  <clock name="clk" num_pins="1"/>
-                  <!-- Regular LUT mode -->
-                  <pb_type name="lutS" blif_model=".names" num_pb="1" class="lut">
-                    <input name="in" num_pins="{num_pins_lutS}" port_class="lut_in"/>
-                    <output name="out" num_pins="1" port_class="lut_out"/>
-                    <!-- LUT timing using delay matrix -->
-                    <!-- These are the physical delay inputs on a Stratix IV LUT but because VPR cannot do LUT rebalancing,
-                           we instead take the average of these numbers to get more stable results
-                        82e-12
-                        173e-12
-                        261e-12
-                        263e-12
-                        398e-12
-                        -->
-                    <delay_matrix type="max" in_port="lutS.in" out_port="lutS.out">
-                      {lutS_delat_mat}
-                    </delay_matrix>
-                  </pb_type>
-                  <pb_type name="ff" blif_model=".latch" num_pb="1" class="flipflop">
-                    <input name="D" num_pins="1" port_class="D"/>
-                    <output name="Q" num_pins="1" port_class="Q"/>
-                    <clock name="clk" num_pins="1" port_class="clock"/>
-                    <T_setup value="66e-12" port="ff.D" clock="clk"/>
-                    <T_clock_to_Q max="124e-12" port="ff.Q" clock="clk"/>
-                  </pb_type>
-                  <interconnect>
-                    <direct name="direct1" input="flutS.in" output="lutS.in"/>
-                    <direct name="direct2" input="lutS.out" output="ff.D">
-                      <pack_pattern name="bleS" in_port="lutS.out" out_port="ff.D"/>
-                    </direct>
-                    <direct name="direct3" input="flutS.clk" output="ff.clk"/>
-                    <mux name="mux1" input="ff.Q lutS.out" output="flutS.out">
-                      <delay_constant max="25e-12" in_port="lutS.out" out_port="flutS.out"/>
-                      <delay_constant max="45e-12" in_port="ff.Q" out_port="flutS.out"/>
-                    </mux>
-                  </interconnect>
+            <mode name="blutS">
+              <pb_type name="flutS" num_pb="1">
+                <input name="in" num_pins="{num_pins_bleS}"/>
+                <output name="out" num_pins="1"/>
+                <clock name="clk" num_pins="1"/>
+                <!-- Regular LUT mode -->
+                <pb_type name="lutS" blif_model=".names" num_pb="1" class="lut">
+                  <input name="in" num_pins="{num_pins_bleS}" port_class="lut_in"/>
+                  <output name="out" num_pins="1" port_class="lut_out"/>
+                  <!-- LUT timing using delay matrix -->
+                  <!-- These are the physical delay inputs on a Stratix IV LUT but because VPR cannot do LUT rebalancing,
+                          we instead take the average of these numbers to get more stable results
+                      82e-12
+                      173e-12
+                      261e-12
+                      263e-12
+                      398e-12
+                      -->
+                  <delay_matrix type="max" in_port="lutS.in" out_port="lutS.out">
+                    {lutS_delat_mat}
+                  </delay_matrix>
+                </pb_type>
+                <pb_type name="ff" blif_model=".latch" num_pb="1" class="flipflop">
+                  <input name="D" num_pins="1" port_class="D"/>
+                  <output name="Q" num_pins="1" port_class="Q"/>
+                  <clock name="clk" num_pins="1" port_class="clock"/>
+                  <T_setup value="66e-12" port="ff.D" clock="clk"/>
+                  <T_clock_to_Q max="124e-12" port="ff.Q" clock="clk"/>
                 </pb_type>
                 <interconnect>
-                  <direct name="direct1" input="bleS.in" output="flutS.in"/>
-                  <direct name="direct2" input="bleS.clk" output="flutS.clk"/>
-                  <direct name="direct3" input="flutS.out" output="bleS.out"/>
+                  <direct name="direct1" input="flutS.in" output="lutS.in"/>
+                  <direct name="direct2" input="lutS.out" output="ff.D">
+                    <pack_pattern name="bleS" in_port="lutS.out" out_port="ff.D"/>
+                  </direct>
+                  <direct name="direct3" input="flutS.clk" output="ff.clk"/>
+                  <mux name="mux1" input="ff.Q lutS.out" output="flutS.out">
+                    <delay_constant max="25e-12" in_port="lutS.out" out_port="flutS.out"/>
+                    <delay_constant max="45e-12" in_port="ff.Q" out_port="flutS.out"/>
+                  </mux>
                 </interconnect>
-              </mode>
-              <mode name="arithmetic">
-                <pb_type name="arithmetic" num_pb="1">
-                  <input name="in" num_pins="{arithmetic_num_pins}"/>
+              </pb_type>
+              <interconnect>
+                <direct name="direct1" input="bleS.in" output="flutS.in"/>
+                <direct name="direct2" input="bleS.clk" output="flutS.clk"/>
+                <direct name="direct3" input="flutS.out" output="bleS.out"/>
+              </interconnect>
+            </mode>
+            <mode name="arithmetic">
+              <pb_type name="arithmetic" num_pb="1">
+                <input name="in" num_pins="{num_pins_bleS}"/>
+                <input name="cin" num_pins="1"/>
+                <output name="out" num_pins="1"/>
+                <output name="cout" num_pins="1"/>
+                <clock name="clk" num_pins="1"/>
+                <!-- Special dual-LUT mode that drives adder only -->
+                <pb_type name="adder_lut" blif_model=".names" num_pb="2" class="lut">
+                  <input name="in" num_pins="{num_pins_bleS}" port_class="lut_in"/>
+                  <output name="out" num_pins="1" port_class="lut_out"/>
+                  <!-- LUT timing using delay matrix -->
+                  <!-- These are the physical delay inputs on a Stratix IV LUT but because VPR cannot do LUT rebalancing,
+                            we instead take the average of these numbers to get more stable results
+                      82e-12
+                      173e-12
+                      261e-12
+                      263e-12
+                      -->
+                  <delay_matrix type="max" in_port="adder_lut.in" out_port="adder_lut.out">
+                    {arith_lut_delat_mat}
+                  </delay_matrix>
+                </pb_type>
+                <pb_type name="adder" blif_model=".subckt adder" num_pb="1">
+                  <input name="a" num_pins="1"/>
+                  <input name="b" num_pins="1"/>
                   <input name="cin" num_pins="1"/>
-                  <output name="out" num_pins="1"/>
                   <output name="cout" num_pins="1"/>
-                  <clock name="clk" num_pins="1"/>
-                  <!-- Special dual-LUT mode that drives adder only -->
-                  <pb_type name="adder_lut" blif_model=".names" num_pb="2" class="lut">
-                    <input name="in" num_pins="{arithmetic_num_pins}" port_class="lut_in"/>
-                    <output name="out" num_pins="1" port_class="lut_out"/>
-                    <!-- LUT timing using delay matrix -->
-                    <!-- These are the physical delay inputs on a Stratix IV LUT but because VPR cannot do LUT rebalancing,
-                             we instead take the average of these numbers to get more stable results
-                        82e-12
-                        173e-12
-                        261e-12
-                        263e-12
-                        -->
-                    <delay_matrix type="max" in_port="adder_lut.in" out_port="adder_lut.out">
-                      {arith_lut_delat_mat}
-                    </delay_matrix>
-                  </pb_type>
-                  <pb_type name="adder" blif_model=".subckt adder" num_pb="1">
-                    <input name="a" num_pins="1"/>
-                    <input name="b" num_pins="1"/>
-                    <input name="cin" num_pins="1"/>
-                    <output name="cout" num_pins="1"/>
-                    <output name="sumout" num_pins="1"/>
-                    <delay_constant max="0.3e-9" in_port="adder.a" out_port="adder.sumout"/>
-                    <delay_constant max="0.3e-9" in_port="adder.b" out_port="adder.sumout"/>
-                    <delay_constant max="0.3e-9" in_port="adder.cin" out_port="adder.sumout"/>
-                    <delay_constant max="0.3e-9" in_port="adder.a" out_port="adder.cout"/>
-                    <delay_constant max="0.3e-9" in_port="adder.b" out_port="adder.cout"/>
-                    <delay_constant max="0.01e-9" in_port="adder.cin" out_port="adder.cout"/>
-                  </pb_type>
-                  <pb_type name="ff" blif_model=".latch" num_pb="1" class="flipflop">
-                    <input name="D" num_pins="1" port_class="D"/>
-                    <output name="Q" num_pins="1" port_class="Q"/>
-                    <clock name="clk" num_pins="1" port_class="clock"/>
-                    <T_setup value="66e-12" port="ff.D" clock="clk"/>
-                    <T_clock_to_Q max="124e-12" port="ff.Q" clock="clk"/>
-                  </pb_type>
-                  <interconnect>
-                    <direct name="clock" input="arithmetic.clk" output="ff.clk"/>
-                    <direct name="lut_in1" input="arithmetic.in[{arithmetic_pin_index}]" output="adder_lut[0:0].in[{arithmetic_pin_index}]"/>
-                    <direct name="lut_in2" input="arithmetic.in[{arithmetic_pin_index}]" output="adder_lut[1:1].in[{arithmetic_pin_index}]"/>
-                    <direct name="lut_to_add1" input="adder_lut[0:0].out" output="adder.a">
-                      </direct>
-                    <direct name="lut_to_add2" input="adder_lut[1:1].out" output="adder.b">
-                      </direct>
-                    <direct name="add_to_ff" input="adder.sumout" output="ff.D">
-                      <pack_pattern name="chain" in_port="adder.sumout" out_port="ff.D"/>
-                    </direct>
-                    <direct name="carry_in" input="arithmetic.cin" output="adder.cin">
-                      <pack_pattern name="chain" in_port="arithmetic.cin" out_port="adder.cin"/>
-                    </direct>
-                    <direct name="carry_out" input="adder.cout" output="arithmetic.cout">
-                      <pack_pattern name="chain" in_port="adder.cout" out_port="arithmetic.cout"/>
-                    </direct>
-                    <mux name="sumout" input="ff.Q adder.sumout" output="arithmetic.out">
-                      <delay_constant max="25e-12" in_port="adder.sumout" out_port="arithmetic.out"/>
-                      <delay_constant max="45e-12" in_port="ff.Q" out_port="arithmetic.out"/>
-                    </mux>
-                  </interconnect>
+                  <output name="sumout" num_pins="1"/>
+                  <delay_constant max="0.3e-9" in_port="adder.a" out_port="adder.sumout"/>
+                  <delay_constant max="0.3e-9" in_port="adder.b" out_port="adder.sumout"/>
+                  <delay_constant max="0.3e-9" in_port="adder.cin" out_port="adder.sumout"/>
+                  <delay_constant max="0.3e-9" in_port="adder.a" out_port="adder.cout"/>
+                  <delay_constant max="0.3e-9" in_port="adder.b" out_port="adder.cout"/>
+                  <delay_constant max="0.01e-9" in_port="adder.cin" out_port="adder.cout"/>
+                </pb_type>
+                <pb_type name="ff" blif_model=".latch" num_pb="1" class="flipflop">
+                  <input name="D" num_pins="1" port_class="D"/>
+                  <output name="Q" num_pins="1" port_class="Q"/>
+                  <clock name="clk" num_pins="1" port_class="clock"/>
+                  <T_setup value="66e-12" port="ff.D" clock="clk"/>
+                  <T_clock_to_Q max="124e-12" port="ff.Q" clock="clk"/>
                 </pb_type>
                 <interconnect>
-                  <direct name="direct1" input="bleS.in[{arithmetic_pin_index}]" output="arithmetic.in"/>
-                  <direct name="carry_in" input="bleS.cin" output="arithmetic.cin">
-                    <pack_pattern name="chain" in_port="bleS.cin" out_port="arithmetic.cin"/>
+                  <direct name="clock" input="arithmetic.clk" output="ff.clk"/>
+                  <direct name="lut_in1" input="arithmetic.in" output="adder_lut[0:0].in"/>
+                  <direct name="lut_in2" input="arithmetic.in" output="adder_lut[1:1].in"/>
+                  <direct name="lut_to_add1" input="adder_lut[0:0].out" output="adder.a">
+                    </direct>
+                  <direct name="lut_to_add2" input="adder_lut[1:1].out" output="adder.b">
+                    </direct>
+                  <direct name="add_to_ff" input="adder.sumout" output="ff.D">
+                    <pack_pattern name="chain" in_port="adder.sumout" out_port="ff.D"/>
                   </direct>
-                  <direct name="carry_out" input="arithmetic.cout" output="bleS.cout">
-                    <pack_pattern name="chain" in_port="arithmetic.cout" out_port="bleS.cout"/>
+                  <direct name="carry_in" input="arithmetic.cin" output="adder.cin">
+                    <pack_pattern name="chain" in_port="arithmetic.cin" out_port="adder.cin"/>
                   </direct>
-                  <direct name="direct2" input="bleS.clk" output="arithmetic.clk"/>
-                  <direct name="direct3" input="arithmetic.out" output="bleS.out"/>
+                  <direct name="carry_out" input="adder.cout" output="arithmetic.cout">
+                    <pack_pattern name="chain" in_port="adder.cout" out_port="arithmetic.cout"/>
+                  </direct>
+                  <mux name="sumout" input="ff.Q adder.sumout" output="arithmetic.out">
+                    <delay_constant max="25e-12" in_port="adder.sumout" out_port="arithmetic.out"/>
+                    <delay_constant max="45e-12" in_port="ff.Q" out_port="arithmetic.out"/>
+                  </mux>
                 </interconnect>
-              </mode>
-            </pb_type>
-            <interconnect>
-              <direct name="direct1" input="lutSinter.in[{lutSinter_to_ble_pin_1}]" output="bleS[0:0].in"/>
-              <direct name="direct2" input="lutSinter.in[{lutSinter_to_ble_pin_2}]" output="bleS[1:1].in"/>
-              <direct name="direct3" input="bleS[1:0].out" output="lutSinter.out"/>
-              <direct name="carry_in" input="lutSinter.cin" output="bleS[0:0].cin">
-                <pack_pattern name="chain" in_port="lutSinter.cin" out_port="bleS[0:0].cin"/>
-              </direct>
-              <direct name="carry_out" input="bleS[1:1].cout" output="lutSinter.cout">
-                <pack_pattern name="chain" in_port="bleS[1:1].cout" out_port="lutSinter.cout"/>
-              </direct>
-              <direct name="carry_link" input="bleS[0:0].cout" output="bleS[1:1].cin">
-                <pack_pattern name="chain" in_port="bleS[0:0].cout" out_port="bleS[1:1].cout"/>
-              </direct>
-              <complete name="complete1" input="lutSinter.clk" output="bleS[1:0].clk"/>
-            </interconnect>
+              </pb_type>
+              <interconnect>
+                <direct name="direct1" input="bleS.in" output="arithmetic.in"/>
+                <direct name="carry_in" input="bleS.cin" output="arithmetic.cin">
+                  <pack_pattern name="chain" in_port="bleS.cin" out_port="arithmetic.cin"/>
+                </direct>
+                <direct name="carry_out" input="arithmetic.cout" output="bleS.cout">
+                  <pack_pattern name="chain" in_port="arithmetic.cout" out_port="bleS.cout"/>
+                </direct>
+                <direct name="direct2" input="bleS.clk" output="arithmetic.clk"/>
+                <direct name="direct3" input="arithmetic.out" output="bleS.out"/>
+              </interconnect>
+            </mode>
           </pb_type>
           <interconnect>
-            <direct name="direct1" input="fle.in" output="lutSinter.in"/>
-            <direct name="direct2" input="lutSinter.out" output="fle.out"/>
-            <direct name="direct3" input="fle.clk" output="lutSinter.clk"/>
-            <direct name="carry_in" input="fle.cin" output="lutSinter.cin">
-              <pack_pattern name="chain" in_port="fle.cin" out_port="lutSinter.cin"/>
+            <direct name="direct1" input="fle.in[{fle_to_ble_pin_1}]" output="bleS[0:0].in"/>
+            <direct name="direct2" input="fle.in[{fle_to_ble_pin_2}]" output="bleS[1:1].in"/>
+            <direct name="direct3" input="bleS[1:0].out" output="fle.out"/>
+            <direct name="carry_in" input="fle.cin" output="bleS[0:0].cin">
+              <pack_pattern name="chain" in_port="fle.cin" out_port="bleS[0:0].cin"/>
             </direct>
-            <direct name="carry_out" input="lutSinter.cout" output="fle.cout">
-              <pack_pattern name="chain" in_port="lutSinter.cout" out_port="fle.cout"/>
+            <direct name="carry_out" input="bleS[1:1].cout" output="fle.cout">
+              <pack_pattern name="chain" in_port="bleS[1:1].cout" out_port="fle.cout"/>
             </direct>
+            <direct name="carry_link" input="bleS[0:0].cout" output="bleS[1:1].cin">
+              <pack_pattern name="chain" in_port="bleS[0:0].cout" out_port="bleS[1:1].cout"/>
+            </direct>
+            <complete name="complete1" input="fle.clk" output="bleS[1:0].clk"/>
           </interconnect>
         </mode>
         <!-- End: n2_lutS -->
@@ -539,26 +520,26 @@ TEMPLATE = '''<!-- Comments are removed to save file size -->
     <!-- Define general purpose logic block (CLB) ends -->
     <!-- Define fracturable multiplier begin -->
     <!-- This multiplier can operate as a 36x36 multiplier that can fracture to two 18x18 multipliers each of which can further fracture to two 9x9 multipliers 
-       For delay modelling, the 36x36 DSP multiplier in Stratix IV has a delay of 1.523 ns + 1.93 ns
-        = 3.45 ns. The 18x18 mode doesn't need to sum four 18x18 multipliers, so it is a bit
-       faster: 1.523 ns for the multiplier, and 1.09 ns for the multiplier output block.
-        For the input and output interconnect delays, unlike Stratix IV, we don't
-       have any routing/logic flexibility (crossbars) at the inputs.  There is some output muxing
-       in Stratix IV and this architecture to select which multiplier outputs should go out (e.g.
-       9x9 outputs, 18x18 or 36x36) so those are very close between the two architectures. 
-       We take the conservative (slightly pessimistic)
+	   For delay modelling, the 36x36 DSP multiplier in Stratix IV has a delay of 1.523 ns + 1.93 ns
+	    = 3.45 ns. The 18x18 mode doesn't need to sum four 18x18 multipliers, so it is a bit
+	   faster: 1.523 ns for the multiplier, and 1.09 ns for the multiplier output block.
+	    For the input and output interconnect delays, unlike Stratix IV, we don't
+	   have any routing/logic flexibility (crossbars) at the inputs.  There is some output muxing
+	   in Stratix IV and this architecture to select which multiplier outputs should go out (e.g.
+	   9x9 outputs, 18x18 or 36x36) so those are very close between the two architectures. 
+	   We take the conservative (slightly pessimistic)
            approach modelling the input as the same as the Stratix IV input delay and the output delay the same as the Stratix IV DSP out delay.
-           
-       We estimate block area by using the published Stratix III data (which is architecturally identical to Stratix IV)
-          (H. Wong, V. Betz and J. Rose, "Comparing FPGA vs. Custom CMOS and the Impact on Processor Microarchitecture", FPGA 2011) of 0.2623 
-          mm^2 and scaling from 65 to 40 nm to obtain 0.0993 mm^2. That area is for a DSP block with approximately 2x the functionality of 
-          the block we use (can implement two 36x36 multiplies instead of our 1, eight 18x18 multiplies instead of our 4, etc.). Hence we 
-          divide the area by 2 to obtain 0.0497 mm^2. One minimum-width transistor units = 60 L^2 (where L = 40 nm), so is 518,000 MWTUS. 
-          That area includes routing and the connection block input muxes.  Our DSP block is four 
-          rows high, and hence includes four horizontal routing channel segments and four vertical ones, which is 4x the routing of a logic 
-          block (single tile). It also includes 3.6x the outputs of a logic block, and 1.8x the inputs. Hence a slight overestimate of the routing
-          area associated with our DSP block is four times that of a logic tile, where the routing area of a logic tile was calculated above (at W = 300)
-          as 30481 MWTAs. Hence the (core, non-routing) area our DSP block is approximately 518,000 - 4 * 30,481 = 396,000 MWTUs.
+		   
+	   We estimate block area by using the published Stratix III data (which is architecturally identical to Stratix IV)
+	      (H. Wong, V. Betz and J. Rose, "Comparing FPGA vs. Custom CMOS and the Impact on Processor Microarchitecture", FPGA 2011) of 0.2623 
+		  mm^2 and scaling from 65 to 40 nm to obtain 0.0993 mm^2. That area is for a DSP block with approximately 2x the functionality of 
+		  the block we use (can implement two 36x36 multiplies instead of our 1, eight 18x18 multiplies instead of our 4, etc.). Hence we 
+		  divide the area by 2 to obtain 0.0497 mm^2. One minimum-width transistor units = 60 L^2 (where L = 40 nm), so is 518,000 MWTUS. 
+		  That area includes routing and the connection block input muxes.  Our DSP block is four 
+		  rows high, and hence includes four horizontal routing channel segments and four vertical ones, which is 4x the routing of a logic 
+		  block (single tile). It also includes 3.6x the outputs of a logic block, and 1.8x the inputs. Hence a slight overestimate of the routing
+		  area associated with our DSP block is four times that of a logic tile, where the routing area of a logic tile was calculated above (at W = 300)
+		  as 30481 MWTAs. Hence the (core, non-routing) area our DSP block is approximately 518,000 - 4 * 30,481 = 396,000 MWTUs.
       -->
     <pb_type name="mult_36">
       <input name="a" num_pins="36"/>
@@ -570,8 +551,8 @@ TEMPLATE = '''<!-- Comments are removed to save file size -->
           <input name="b" num_pins="18"/>
           <output name="out" num_pins="36"/>
           <!-- Model 9x9 delay and 18x18 delay as the same.  9x9 could be faster, but in Stratix IV
-              isn't, presumably because the multiplier layout is really optimized for 18x18.
-              -->
+	          isn't, presumably because the multiplier layout is really optimized for 18x18.
+		      -->
           <mode name="two_mult_9x9">
             <pb_type name="mult_9x9_slice" num_pb="2">
               <input name="A_cfg" num_pins="9"/>
@@ -646,7 +627,7 @@ TEMPLATE = '''<!-- Comments are removed to save file size -->
         </pb_type>
         <interconnect>
           <!-- Stratix IV input delay of 207ps is conservative for this architecture because this architecture does not have an input crossbar in the multiplier. 
-           Subtract 72.5 ps delay, which is already in the connection block input mux, leading
+		   Subtract 72.5 ps delay, which is already in the connection block input mux, leading
               -->
           <direct name="a2a" input="mult_36.a" output="divisible_mult_18x18[1:0].a">
             <delay_constant max="134e-12" in_port="mult_36.a" out_port="divisible_mult_18x18[1:0].a"/>
@@ -687,8 +668,8 @@ TEMPLATE = '''<!-- Comments are removed to save file size -->
         </pb_type>
         <interconnect>
           <!-- Stratix IV input delay of 207ps is conservative for this architecture because this architecture does not have an input crossbar in the multiplier. 
-           Subtract 72.5 ps delay, which is already in the connection block input mux, leading
-           to a 134 ps delay.
+		   Subtract 72.5 ps delay, which is already in the connection block input mux, leading
+		   to a 134 ps delay.
               -->
           <direct name="a2a" input="mult_36.a" output="mult_36x36_slice.A_cfg">
             <delay_constant max="134e-12" in_port="mult_36.a" out_port="mult_36x36_slice.A_cfg"/>
@@ -1301,49 +1282,6 @@ TEMPLATE = '''<!-- Comments are removed to save file size -->
 </architecture>
 '''
 
-
-def distribute_pins(total_pins, pins_per_group, group_num):
-    all_combinations = list(combinations(range(total_pins), pins_per_group))
-
-    # If the number of all possible combinations is less than group_num, return all of them
-    if len(all_combinations) <= group_num:
-        return all_combinations
-
-    # Initialize a list to hold the final groups
-    final_groups = []
-
-    # Initialize a counter to keep track of how many times each pin has been used
-    pin_usage = Counter()
-
-    # While we haven't yet created the desired number of groups
-    while len(final_groups) < group_num:
-        # Find the pin that has been used the least
-        least_used_pin = min(pin_usage, key=lambda pin: (pin_usage[pin], pin), default=0)
-
-        # Initialize a variable to keep track of the best group so far
-        best_group = None
-        best_group_usage = float('inf')
-
-        # For each possible combination
-        for combination in all_combinations:
-            # If this combination contains the least used pin
-            if least_used_pin in combination:
-                # Calculate the total usage of this combination
-                group_usage = sum(pin_usage[pin] for pin in combination)
-                # If this combination is better than the best so far, update the best so far
-                if group_usage < best_group_usage:
-                    best_group = combination
-                    best_group_usage = group_usage
-
-        # Add the best group to the final groups
-        final_groups.append(list(best_group))
-        # Update the pin usage counter
-        pin_usage.update(best_group)
-        # Remove the used combination from the list of all combinations
-        all_combinations.remove(best_group)
-
-    return final_groups
-
 def gen_xbars(ble_count, num_pins_ble, num_feedback_ble, clb_input_groups = ['I1', 'I2', 'I3', 'I4'], clb_input_groups_per_xbar = 2):
     clb_input_group_count = len(clb_input_groups)
     
@@ -1399,7 +1337,7 @@ def gen_xbars(ble_count, num_pins_ble, num_feedback_ble, clb_input_groups = ['I1
 
 """
 configurable parameters, all integer
-*frac_feedback_ble = 0.5
+*CLB_groups_per_xb = 2
 *lut_size = 6
 - lut_size_small = lut_size - 1
 - lut_size_large = lut_size
@@ -1407,13 +1345,12 @@ configurable parameters, all integer
 
 # create xml parameters
 """
-def generate_arch(ble_count: int, num_feedback_ble: int, lut_size: int) -> str:
+def generate_arch(ble_count: int, CLB_groups_per_xb: int, lut_size: int) -> str:
     config_dict = {}
     lut_size_small = lut_size - 1
     lut_size_large = lut_size
 
     # CLB
-    # CLB_pins_total = round(lut_size * (ble_count + 1) / 2) # using empirical formula K(N+1)/2
     CLB_pins_total = round(lut_size_small * (ble_count + 0.5)) # using empirical formula K'(N'+1)/2, with K' = K - 1, N' = 2N
     CLB_rem = CLB_pins_total % 4
     if CLB_rem > 0:
@@ -1429,34 +1366,36 @@ def generate_arch(ble_count: int, num_feedback_ble: int, lut_size: int) -> str:
     # FLE
     config_dict['num_pb_fle'] = ble_count # cluster size
     shared_small = floor(lut_size_small / 2) # shared input count
+    shared_small = min(shared_small, lut_size_small - 2) # force at least 2 distinct inputs
     num_pins_small = int(2 * (lut_size_small - shared_small) + shared_small) # total input count
-    num_pins_small = max(6, num_pins_small) # ensure minimum amount of 6 pins (for 4 CLB input groups, 2 groups per crossbar = 4C2 = 6)
-    num_pins_ble = max(num_pins_small, lut_size_large) # take minimum required input pins for FLE
+    num_pins_fle = max(comb(4, CLB_groups_per_xb), num_pins_small, lut_size_large) # take minimum required input pins for FLE
     
-    config_dict['num_pins_fle'] = num_pins_ble
+    config_dict['num_pins_fle'] = num_pins_fle
     config_dict['fle_pins_last_index'] = ble_count - 1
     config_dict['fle_pins_2last_index'] = ble_count - 2
+
+    # BLE-S
+    num_pins_ble_s = lut_size_small
+    config_dict['num_pins_bleS'] =  num_pins_ble_s
     
-    # small lut
-    config_dict['num_pins_lutSinter'] = num_pins_small
-    config_dict['num_pins_lutS'] = lut_size_small
+    # BLE-S -> small lut
     config_dict['lutS_delat_mat'] = '\n'.join(['235e-12'] * lut_size_small)
-    config_dict['lutSinter_to_ble_pin_1'] = f"{lut_size_small-1}:0"
-    config_dict['lutSinter_to_ble_pin_2'] = f"{num_pins_small-1}:{num_pins_small-lut_size_small}"
     
-    # arithmetic
-    num_pins_arithmetic = max(2, lut_size_small - 1) # ensure a minimum of 2 pins for arithmetic
-    config_dict['arithmetic_num_pins'] = str(num_pins_arithmetic)
-    config_dict['arithmetic_pin_index'] = str(num_pins_arithmetic - 1) + ':0'
-    config_dict['arith_lut_delat_mat'] = '\n'.join(['195e-12'] * num_pins_arithmetic)
+    # BLE-S -> arithmetic
+    config_dict['arith_lut_delat_mat'] = '\n'.join(['195e-12'] * num_pins_ble_s)
+
+    # BLE-S
+    config_dict['fle_to_ble_pin_1'] = f"{num_pins_ble_s-1}:0"
+    config_dict['fle_to_ble_pin_2'] = f"{num_pins_small-1}:{num_pins_small-num_pins_ble_s}"
 
     # large lut
     config_dict['num_pins_lutL'] = lut_size_large
     config_dict['lutL_delat_mat'] = '\n'.join(['261e-12'] * lut_size_large)
     config_dict['fle_to_bleL_pin_index'] = str(lut_size_large-1) + ':0'
 
-    # 50% depop xbar
-    config_dict['fle_input_xbar'] = gen_xbars(ble_count, num_pins_ble, num_feedback_ble, clb_input_groups_per_xbar=2)
+    # depop xbar according to (CLB_groups_per_xb/4) %
+    num_feedback_fle = round(CLB_groups_per_xb / 4 * ble_count)
+    config_dict['fle_input_xbar'] = gen_xbars(ble_count, num_pins_fle, num_feedback_fle, clb_input_groups_per_xbar=CLB_groups_per_xb)
 
     out = TEMPLATE.format(**config_dict)
     return out
@@ -1465,21 +1404,20 @@ def generate_arch(ble_count: int, num_feedback_ble: int, lut_size: int) -> str:
 # Specify the parameters and their default values for this architecture here.
 DEFAULTS = {
     'ble_count': 10,
-    'num_feedback_ble': 5,
+    'CLB_groups_per_xb': 2,
     'lut_size': 6
 }
 
-class BaseExpArchFactory(ArchFactory, ParamsChecker):
+class GenExpArchFactory(ArchFactory, ParamsChecker):
     """
-    Baseline FPGA as specified in the Kratos paper, modified for prelminary exploration.
-    Has a Stratix-IV-like architecture using 40 nm technology.
+    v1 of spec: https://confluence.cornell.edu/display/abdelfattah/Architecture+Diagrams
     """
 
     def verify_params(self, params: dict[str, any]) -> dict[str, any]:
       return self.autofill_defaults(DEFAULTS, params)
     
-    def get_name(self, ble_count: int, num_feedback_ble: int, lut_size: int, **kwargs) -> str:
-      return f"N.{ble_count}_K.{lut_size}_fdbk.{num_feedback_ble}"
+    def get_name(self, ble_count: int, CLB_groups_per_xb: int, lut_size: int, **kwargs) -> str:
+      return f"N.{ble_count}_K.{lut_size}_xb.{CLB_groups_per_xb}"
 
     def get_arch(self, **kwargs) -> str:
       """
