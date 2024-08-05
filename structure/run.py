@@ -38,6 +38,7 @@ class Runner():
             desc: str = 'run', 
             num_parallel_tasks: int = 1, 
             runner_err_file: str = 'runner.err',
+            results_status_key: str = 'status',
             filter_params: list[str] = None,
             filter_results: list[str] = None,
             **kwargs
@@ -50,6 +51,7 @@ class Runner():
         * desc:str, description of run
         * num_parallel_tasks:int, maximum number of simultaneous threads allowed in the thread pool.
         * runner_err_file:str, name of error file created by runner if an exception occurs while running the Experiment. Created in the Experiment folder.
+        * results_status_key:str, key in results dictionary from the Experiment that should yield a True/False value, indicating success/failure. Default: 'status'
         * filter_params:list[str], a list of parameter keys that should be extracted from the Experiment parameters and included in the resultant Dataframe. Pass None to include all. Default: None
         * filter_results:list[str], a list of result keys that should be extracted from the result and included in the resultant Dataframe. Pass None to include all. Default: None
         All other keyword arguments are passed directly to the Experiment.run() function.
@@ -65,7 +67,7 @@ class Runner():
         exp_start_times = {}
 
         # runnable
-        def run_experiment(exp: Experiment) -> dict:
+        def run_experiment(exp: Experiment) -> tuple[dict, dict]:
             if track_run_time:
                 # log start time of experiment
                 nonlocal exp_start_times
@@ -105,8 +107,12 @@ class Runner():
                 add_to_results(res_dict, inp, filter_params)
                 add_to_results(res_dict, out, filter_results)
 
+                is_success = out.get(results_status_key, False)
+                if is_success:
+                    successes += 1
+
                 print("====================================")
-                print(f"Result {i+1}/{total_count}")
+                print(f"Result {i+1}/{total_count}: {'succeeded' if is_success else 'failed'}")
                 if track_run_time:
                     print(f" (Time elapsed for this experiment: {gen_time_elapsed(timer() - exp_start_times[exp])})")
                 
@@ -118,8 +124,6 @@ class Runner():
                     results[exp.root_dir].append(res_dict)
                 else:
                     results[exp.root_dir] = [res_dict]
-
-                successes += 1
             except Exception as e:
                 err_str = f"Exception:\n{repr(e)}\n"
                 with open(os.path.join(exp.exp_dir, runner_err_file), 'w') as f:
