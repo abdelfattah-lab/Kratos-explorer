@@ -21,7 +21,7 @@ import os.path as path
 from copy import deepcopy
 
 FILTER_PARAMS = ['ble_count', 'lut_size', 'sparsity', 'data_width']
-FILTER_RESULTS = ['fmax', 'cpd', 'rcw', 'blocks', 'clb', 'adder']
+FILTER_RESULTS = ['fmax', 'cpd', 'rcw', 'blocks', 'clb', 'adder', 'mult_36']
 
 ARCH = GenExpArchFactory()
 BASE_PARAMS = {
