@@ -106,7 +106,19 @@ In general, the resultant final number of experiments run will be `a * b * c * .
 
 ### Background running
 
-`run_bg.sh` is provided to facilitate running of the Python scripts as background processes, so it can continue even when the terminal is closed, e.g., SSH connection terminated:
+This section provides methods to ensure processes will continue running in the background with proper logging, so it can continue even when the terminal is closed, e.g., SSH connection terminated. 
+
+#### Using `tmux` (preferred)
+
+`tmux` will work like a normal terminal, and you can disconnect and re-attach to sessions if required:
+0. (If not installed) `sudo apt-get install tmux`
+1. Make a new session with `tmux new -s <name>`.
+2. Run whatever commands as required.
+3. When the terminal is killed, you can resume the terminal with `tmux attach -t <name>`.
+
+#### Using provided script (persistent log file)
+
+`run_bg.sh` is provided to facilitate running of the Python scripts as background processes:
 1. Ensure that `run_bg.sh` is executable, i.e., `chmod +x run_bg.sh`
 2. Edit the parameters at the top of `run_bg.sh`:
     - `BASH_RUN_SCRIPT`: directs the script to run *another bash script* in the background.
