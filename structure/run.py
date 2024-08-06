@@ -8,6 +8,7 @@ from timeit import default_timer as timer
 from typing import Type, TypeVar
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import pandas as pd
+import traceback
 
 E = TypeVar('E', bound=Experiment)
 class Runner():
@@ -36,7 +37,7 @@ class Runner():
     def run_all_threaded(self,
             track_run_time: bool = True,
             desc: str = 'run', 
-            num_parallel_tasks: int = 1, 
+            num_parallel_tasks: int = 1,
             runner_err_file: str = 'runner.err',
             results_status_key: str = 'status',
             filter_params: list[str] = None,
@@ -125,7 +126,7 @@ class Runner():
                 else:
                     results[exp.root_dir] = [res_dict]
             except Exception as e:
-                err_str = f"Exception:\n{repr(e)}\n"
+                err_str = f"Exception:\n{traceback.format_exc()}\n"
                 with open(os.path.join(exp.exp_dir, runner_err_file), 'w') as f:
                     f.write(err_str)
                 
