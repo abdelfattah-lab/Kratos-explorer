@@ -26,6 +26,10 @@ class VtrExperiment(Experiment):
 
         # generic experiment setup
         self._setup_exp(REQUIRED_KEYS_EXP)
+        
+        # Check for viable result (i.e., it has been run in the past)
+        if not dry_run and allow_skipping and self.get_result().get('status', False):
+            return
 
         # generate wrapper file
         wrapper_file_name = 'design.v'
@@ -43,10 +47,6 @@ class VtrExperiment(Experiment):
 - Wrapper file: {wrapper_file_name}
 - Architecture file: {arch_file_name}
 >>> Dry run completed.""")
-            return
-        
-        # Check for viable result (i.e., it has been run in the past)
-        if allow_skipping and self.get_result()['status']:
             return
 
         # Find VTR and define command
