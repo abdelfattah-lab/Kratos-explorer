@@ -1417,7 +1417,7 @@ def generate_arch(ble_count: int, CLB_groups_per_xb: int, lut_size: int) -> str:
     config_dict['fle_to_bleL_pin_index'] = str(lut_size_large-1) + ':0'
 
     # depop xbar according to (CLB_groups_per_xb/4) %
-    num_feedback_fle = round(CLB_groups_per_xb / 4 * ble_count)
+    num_feedback_fle = max(1, round(CLB_groups_per_xb / 4 * ble_count)) # ensure at least 1 feedback BLE per xbar
     config_dict['fle_input_xbar'] = gen_xbars(ble_count, num_pins_fle, num_feedback_fle, clb_input_groups_per_xbar=CLB_groups_per_xb)
 
     out = TEMPLATE.format(**config_dict)
