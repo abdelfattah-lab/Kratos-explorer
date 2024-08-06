@@ -20,8 +20,8 @@ from structure.design import Design
 import os.path as path
 from copy import deepcopy
 
-FILTER_PARAMS = ['ble_count', 'lut_size', 'sparsity', 'data_width']
-FILTER_RESULTS = ['fmax', 'cpd', 'rcw', 'blocks', 'clb', 'adder', 'mult_36']
+FILTER_PARAMS = ['ble_count', 'lut_size', 'CLB_groups_per_xb', 'sparsity', 'data_width']
+FILTER_RESULTS = ['fmax', 'cpd', 'rcw', 'blocks', 'clb', 'fle', 'adder', 'mult_36']
 
 ARCH = GenExpArchFactory()
 BASE_PARAMS = {
@@ -29,8 +29,11 @@ BASE_PARAMS = {
         'verilog_search_dir': path.join(path.dirname(path.realpath(__file__)), '../verilog')
     },
     keys.KEY_ARCH: {
-        'ble_count': 10,
-        'lut_size': [3, 4, 5, 6]
+        # 'ble_count': [5, 10, 15, 20, 25, 30],
+        # 'CLB_groups_per_xb': list(range(1, 5)),
+        'lut_size': [3, 4, 5, 6],
+        # 'ble_count': list(range(2, 10)),
+        # 'lut_size': [3, 4]
     },
     keys.KEY_DESIGN: {
         'sparsity': [0, 0.5, 0.9],
