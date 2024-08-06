@@ -72,7 +72,11 @@ def reset_seed(n=114514):
     np.random.seed(n)
 
 def distribute_pins(total_pins, pins_per_group, group_num):
-    all_combinations = list(combinations(range(total_pins), pins_per_group))
+    all_combinations = None
+    if pins_per_group >= 1:
+        all_combinations = list(combinations(range(total_pins), pins_per_group))
+    else:
+        raise ValueError(f"pins_per_group should be a natural number >= 1! provided: {pins_per_group}")
 
     # If the number of all possible combinations is less than group_num, return all of them
     if len(all_combinations) <= group_num:
@@ -82,7 +86,7 @@ def distribute_pins(total_pins, pins_per_group, group_num):
     final_groups = []
 
     # Initialize a counter to keep track of how many times each pin has been used
-    pin_usage = Counter()
+    pin_usage = Counter({x: 0 for x in range(total_pins)})
 
     # While we haven't yet created the desired number of groups
     while len(final_groups) < group_num:
