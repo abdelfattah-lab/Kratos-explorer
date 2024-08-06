@@ -47,7 +47,6 @@ class VtrExperiment(Experiment):
         
         # Check for viable result (i.e., it has been run in the past)
         if allow_skipping and self.get_result()['status']:
-            print(f"skipped: allow_skipping was {allow_skipping}")
             return
 
         # Find VTR and define command
