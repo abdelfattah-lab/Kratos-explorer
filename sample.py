@@ -3,7 +3,7 @@ os.chdir(os.path.dirname(os.path.realpath(__file__))) # change working directory
 
 from structure.run import Runner
 from impl.exp.vtr import VtrExperiment
-from impl.arch.base_exp import BaseExpArchFactory
+from impl.arch.gen_exp import GenExpArchFactory
 from impl.design.gemmt.fu import GemmTFuDesign
 from impl.design.gemmt.rp import GemmTRpDesign
 import structure.consts.keys as keys
@@ -31,14 +31,14 @@ runner = Runner()
 # add as many experiments as required.
 runner.add_experiments(
     VtrExperiment,     # concrete Experiment class
-    BaseExpArchFactory(), # concrete ArchFactory
+    GenExpArchFactory(), # concrete ArchFactory
     GemmTFuDesign(),   # concrete Design
     params             # parameters
 )
 # params[keys.KEY_EXP]['root_dir'] += '/rp'
 # runner.add_experiments(
 #     VtrExperiment,
-#     BaseExpArchFactory(),
+#     GenExpArchFactory(),
 #     GemmTRpDesign(),
 #     params
 # )
@@ -49,6 +49,7 @@ results = runner.run_all_threaded(
     num_parallel_tasks=8,                                   # how many threads to create in parallel
     filter_params=['lut_size', 'data_width', 'sparsity'],   # parameters to include in the DataFrame
     filter_results=['fmax', 'cpd', 'blocks', 'clb']         # results to include in the DataFrame
+    #... remaining unrecognized arguments are passed into each Experiment.run()
 )
 
 # do as required with results: { experiment root directory: pandas DataFrame }
