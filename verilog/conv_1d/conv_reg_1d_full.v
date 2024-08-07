@@ -49,7 +49,7 @@ module conv_reg_1d_parallel
                 // connect the flattened wire
                 for (k = 0; k < IMG_D; k = k + 1) begin
                     for (l = 0; l < FILTER_L; l = l + 1) begin 
-                        assign weight_flattened[(i * k * FILTER_L + l + 1) * DATA_WIDTH-1:(k * FILTER_L + l) * DATA_WIDTH] = weight[(i * IMG_D * FILTER_L + k * FILTER_L + l +1) * DATA_WIDTH-1:(i * IMG_D * FILTER_L + k * FILTER_L + l) * DATA_WIDTH];
+                        assign weight_flattened[(k * FILTER_L + l + 1) * DATA_WIDTH-1:(k * FILTER_L + l) * DATA_WIDTH] = weight[(i * IMG_D * FILTER_L + k * FILTER_L + l +1) * DATA_WIDTH-1:(i * IMG_D * FILTER_L + k * FILTER_L + l) * DATA_WIDTH];
                         assign input_flattened[(k * FILTER_L + l + 1) * DATA_WIDTH-1:(k * FILTER_L + l) * DATA_WIDTH] = lines_in[(k * IMG_W + j * STRIDE_W + l + 1) * DATA_WIDTH-1:(k * IMG_W + j * STRIDE_W + l) * DATA_WIDTH];
                     end
                 end
