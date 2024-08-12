@@ -527,14 +527,14 @@ TEMPLATE = '''<!-- Comments are removed to save file size -->
         <direct name="clbouts2" input="fle[{fle_pins_last_index}:0].out[1:1]" output="clb.O[{clb_opin_range_2}]"/>
         <!-- Carry chain links -->
         <direct name="carry_in" input="clb.cin" output="fle[0:0].cin">
-          <!-- Put all inter-block carry chain delay on this one edge -->
-          <delay_constant max="0.16e-9" in_port="clb.cin" out_port="fle[0:0].cin"/>
           <pack_pattern name="chain" in_port="clb.cin" out_port="fle[0:0].cin"/>
         </direct>
         <direct name="carry_out" input="fle[{fle_pins_last_index}:{fle_pins_last_index}].cout" output="clb.cout">
+          <delay_constant max="1.45e-11" in_port="fle[{fle_pins_last_index}:{fle_pins_last_index}].cout" out_port="clb.cout"/>
           <pack_pattern name="chain" in_port="fle[{fle_pins_last_index}:{fle_pins_last_index}].cout" out_port="clb.cout"/>
         </direct>
         <direct name="carry_link" input="fle[{fle_pins_2last_index}:0].cout" output="fle[{fle_pins_last_index}:1].cin">
+          <delay_constant max="1.45e-11" in_port="fle[{fle_pins_2last_index}:0].cout" out_port="fle[{fle_pins_last_index}:1].cin"/>
           <pack_pattern name="chain" in_port="fle[{fle_pins_2last_index}:0].cout" out_port="fle[{fle_pins_last_index}:1].cin"/>
         </direct>
       </interconnect>
