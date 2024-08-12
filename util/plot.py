@@ -2,13 +2,14 @@
 Convenience functions for plotting results.
 """
 
+from util.calc import get_portrait_square
+
 import matplotlib.pyplot as plt
 from matplotlib import cm
 from matplotlib.axes import Axes
 from matplotlib.lines import Line2D
 import numpy as np
 import pandas as pd
-import math
 from itertools import cycle
 from random import shuffle
 
@@ -112,7 +113,7 @@ def plot_result_3d(axis1, axis2, datapoints, description1='', description2='', d
 def plot_xy(
         df: pd.DataFrame, 
         group_identifiers: list[str], 
-        x_axis_col: str, 
+        x_axis_col: str | list[str], 
         y_axis_col: str, 
         subplots_identifiers: list[str] = None,
         y_axis_col_secondary: str = None,
@@ -120,7 +121,7 @@ def plot_xy(
         y_axis_label: str = None, 
         y_axis_label_secondary: str = None, 
         save_path: str = None,
-        ax: Axes = None
+        short_labels: dict[str, str] = None
     ) -> None:
     """
     Plots a multi-line XY graph.
@@ -128,7 +129,7 @@ def plot_xy(
     Required arguments:
     * df:pandas.DataFrame, dataframe to use as data for plotting.
     * group_identifiers:list[str], Rows with the same group_identifiers values will be plot as a line.
-    * x_axis_col:str, column to use as x-axis value for each line.
+    * x_axis_col:str/list[str], column(s) to use as x-axis value(s) for each line. If a list of length 2 is provided, then a 3D plot is used.
     * y_axis_col:str, column to use as left y-axis value for each line.
 
     Optional arguments:
@@ -136,6 +137,7 @@ def plot_xy(
     * y_axis_col_secondary:str, if provided, then a new line is created with this as right y-axis value. Default: None
     * *_axis_label*:str, provide the label to use for each axis. If None is provided, then it defaults to the column name. Default: None
     * save_name:str, if provided, then plot image is saved at the provided path; else the result is just displayed. Default: None
+    * short_labels:dict[str, str], if provided, then labels are created using the provided <key>: <value to use>; or else keys will be truncated to the first 3 characters by default.
     """
     # Convenience function for labelling
     def get_identifiers_label(identifiers: list[str], values: list[str] = None, df: pd.DataFrame = None) -> str:
@@ -143,8 +145,30 @@ def plot_xy(
 
         if values is None:
             values = [df[id].unique()[0] for id in identifiers]
-        return ",".join([f"{id}={val}" for id, val in zip(identifiers, values)])
+        
+        def get_id(id):
+            default_id = id[:3]
+            if short_labels is None:
+                return default_id
+            
+            return short_labels.get(id, default_id)
+        
+        return ",".join([f"{get_id(id)}={val}" for id, val in zip(identifiers, values)])
 
+    # check for 3D
+    is_3d = False
+    if isinstance(x_axis_col, list):
+        x_axis_len = len(x_axis_col)
+        if x_axis_len > 2 or x_axis_len < 1:
+            raise ValueError("List must be length 1 or 2!")
+        if y_axis_col_secondary is not None:
+            raise ValueError("Secondary y-axis is not supported with 3D graphs!")
+        
+        if x_axis_len == 1:
+            x_axis_col = x_axis_col[0]
+        else:
+            is_3d = True
+    
     # Set up labels
     if x_axis_label is None:
         x_axis_label = x_axis_col
@@ -154,28 +178,30 @@ def plot_xy(
         y_axis_label_secondary = y_axis_col_secondary
 
     # Set up figure and axes
-    fig, axes = None, []
+    fig_w, fig_h = (12, 12)
+    main_fig = plt.figure(constrained_layout=not is_3d)
+    subplot_figs = []
     subplot_dfs = []
 
     if subplots_identifiers is not None:
+        # get unique counts
+        unique_counts = sorted([(id, df[id].unique().shape[0]) for id in subplots_identifiers], key=lambda p: p[1], reverse=True)
+        
         subplot_dfs = [y for _, y in df.groupby(subplots_identifiers, as_index=False)]
+        subplot_dfs = sorted(subplot_dfs, key=lambda d: tuple([d[p[0]].unique()[0] for p in unique_counts]))
         subplot_count = len(subplot_dfs)
 
-        # find "squarish" layout
-        side1 = math.floor(math.sqrt(subplot_count))
-        side2 = math.ceil(subplot_count / float(side1))
-
-        # favor portrait layout
-        subplot_rows = max(side1, side2)
-        subplot_cols = min(side1, side2)
-
         # create subplots
-        fig, axes = plt.subplots(nrows=subplot_rows, ncols=subplot_cols, figsize=(8,8))
+        rows, cols = get_portrait_square(subplot_count)
+        if len(subplots_identifiers) > 1:
+            rows = unique_counts[0][-1] # use largest unique count as row count
+            cols = subplot_count // rows
+        main_fig.set_size_inches(rows * fig_w, cols * fig_h)
+        subplot_figs = main_fig.subfigures(rows, cols)
     else:
         # make single axes by default
         subplot_dfs = [df]
-        fig = plt.figure()
-        axes = [fig.add_subplot(111)]
+        subplot_figs = [main_fig]
     
     # Get all unique group permutations.
     unique_groups = df.value_counts(group_identifiers).index.tolist()
@@ -210,39 +236,90 @@ def plot_xy(
         )
         legend_handles.append(legend_line)
 
-    for df, ax_i in zip(subplot_dfs, np.ndindex(axes.shape)):
-        ax = axes[ax_i]
-        if subplots_identifiers is not None:
-            ax.set_title(get_identifiers_label(subplots_identifiers, df=df))
-        
-        # Set labels for axes
-        ax.set_xlabel(xlabel=x_axis_label)
-        ax.set_ylabel(ylabel=y_axis_label)
-        ax2 = None
-        if y_axis_col_secondary is not None:
-            ax2 = ax.twinx()
-            ax2.set_ylabel(ylabel=y_axis_label_secondary)
+    # function to remove all axes legends
+    def remove_legend(ax: Axes):
+        if ax is None:
+            return
+        legend = ax.get_legend()
+        if legend is None:
+            return
+        legend.remove()
 
+    for df, fig in zip(subplot_dfs, subplot_figs.flat):
+        if subplots_identifiers is not None:
+            fig.suptitle(get_identifiers_label(subplots_identifiers, df=df))
+        
         # Split DataFrame into distinct groups
         groups = [y for _, y in df.groupby(group_identifiers, as_index=False)]
 
-        for grp in groups:
-            # sort group by x-axis
-            grp.sort_values(by=[x_axis_col], inplace=True)
+        if is_3d:
+            # 3D subplot case
+            rows, cols = get_portrait_square(len(groups))
+            axes = fig.subplots(nrows=rows, ncols=cols, subplot_kw=dict(projection='3d'))
+        
+            for grp, ax_i in zip(groups, np.ndindex(axes.shape)):
+                # get axes and color
+                ax = axes[ax_i]
+                _, color = attr_map[tuple(grp[col].unique()[0] for col in group_identifiers)]
 
-            marker, color = attr_map[tuple(grp[col].unique()[0] for col in group_identifiers)]
-            grp.plot(x=x_axis_col, y=y_axis_col, kind='line', linestyle='solid', marker=marker, color=color, ax=ax)
+                # get bar values
+                grp.sort_values(by=x_axis_col, inplace=True)
+                xy_labels = [grp[col].unique() for col in x_axis_col]
+                xy_plane = [np.arange(x.shape[0]) for x in xy_labels]
+                ypos, xpos = np.meshgrid(*xy_plane)
+                xpos = xpos.flatten()
+                ypos = ypos.flatten()
+                top = grp[y_axis_col].values.ravel()
+                bottom = np.zeros_like(top)
+
+                # plot bar
+                ax.bar3d(xpos.flatten(), ypos.flatten(), bottom, .5, .5, top, shade=True, color=color)
+                
+                # set ticks
+                ax.set_xticks(xy_plane[0] + .25)
+                ax.set_yticks(xy_plane[1] + .25)
+                ax.set_xticklabels(xy_labels[0])
+                ax.set_yticklabels(xy_labels[1])
+                
+                # set axes labels
+                ax.set_xlabel(x_axis_label[0])
+                ax.set_ylabel(x_axis_label[1])
+                ax.set_zlabel(y_axis_label)
+
+                # set view angle
+                ax.view_init(elev=25, azim=-145)
+
+                remove_legend(ax)
+            
+            fig.figure.tight_layout()
+        else:
+            # Normal group plot
+            fig.figure.set_size_inches(fig_w, fig_h)
+
+            ax = fig.add_subplot(111)
+            ax.set_xlabel(xlabel=x_axis_label)
+            ax.set_ylabel(ylabel=y_axis_label)
+            ax2 = None
             if y_axis_col_secondary is not None:
-                grp.plot(x=x_axis_col, y=y_axis_col_secondary, kind='line', linestyle='dotted', marker=marker, color=color, ax=ax2)
-        
-        # remove all axes legends
-        ax.get_legend().remove()
-        if ax2 is not None:
-            ax2.get_legend().remove()
-        
+                ax2 = ax.twinx()
+                ax2.set_ylabel(ylabel=y_axis_label_secondary)
+
+            for grp in groups:
+                marker, color = attr_map[tuple(grp[col].unique()[0] for col in group_identifiers)]
+
+                # sort group by x-axis
+                grp.sort_values(by=[x_axis_col], inplace=True)
+                grp.plot(x=x_axis_col, y=y_axis_col, kind='line', linestyle='solid', marker=marker, color=color, ax=ax)
+                if y_axis_col_secondary is not None:
+                    grp.plot(x=x_axis_col, y=y_axis_col_secondary, kind='line', linestyle='dotted', marker=marker, color=color, ax=ax2)
+            
+            remove_legend(ax)
+            remove_legend(ax2)
+
     # set up legend
-    fig.legend(handles=legend_handles, loc='center left', bbox_to_anchor=(1, 0.5))
-    fig.tight_layout()
+    main_fig.legend(handles=legend_handles, loc='center left', bbox_to_anchor=(1, 0.5))
+    if is_3d:
+        main_fig.tight_layout()
     if save_path is not None:
         plt.savefig(save_path, bbox_inches='tight', dpi=1200)
     plt.close()
