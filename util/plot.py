@@ -12,6 +12,7 @@ import numpy as np
 import pandas as pd
 from itertools import cycle
 from random import shuffle
+from typing import Callable
 
 USABLE_MARKERS = ['.', 'o', 'v', '^', '<', '>', '1', '2', '3', '4', '8', 's', 'p', 'P', '*', 'h', '+', 'x', 'X', 'D']
 
@@ -116,6 +117,7 @@ def plot_xy(
         x_axis_col: str | list[str], 
         y_axis_col: str, 
         subplots_identifiers: list[str] = None,
+        subplots_df_modifier: Callable[[pd.DataFrame], pd.DataFrame] = None,
         y_axis_col_secondary: str = None,
         x_axis_label: str = None,
         y_axis_label: str = None, 
@@ -134,6 +136,7 @@ def plot_xy(
 
     Optional arguments:
     * subplots_identifiers:list[str], if provided, then subplots for each subset of unique values of the identifiers will be created, with the group identifiers applied for each.
+    * subplots_df_modifier:(df: DataFrame) -> DataFrame, if provided, then apply this function per DataFrame group as partitioned by subplots_identifiers. Default: None
     * y_axis_col_secondary:str, if provided, then a new line is created with this as right y-axis value. Default: None
     * *_axis_label*:str, provide the label to use for each axis. If None is provided, then it defaults to the column name. Default: None
     * save_name:str, if provided, then plot image is saved at the provided path; else the result is just displayed. Default: None
@@ -178,7 +181,7 @@ def plot_xy(
         y_axis_label_secondary = y_axis_col_secondary
 
     # Set up figure and axes
-    fig_w, fig_h = (12, 12)
+    fig_w, fig_h = (20, 20)
     main_fig = plt.figure(constrained_layout=not is_3d)
     subplot_figs = []
     subplot_dfs = []
@@ -187,7 +190,8 @@ def plot_xy(
         # get unique counts
         unique_counts = sorted([(id, df[id].unique().shape[0]) for id in subplots_identifiers], key=lambda p: p[1], reverse=True)
         
-        subplot_dfs = [y for _, y in df.groupby(subplots_identifiers, as_index=False)]
+        for _, y in df.groupby(subplots_identifiers, as_index=False):
+            subplot_dfs.append(y if subplots_df_modifier is None else subplots_df_modifier(y))
         subplot_dfs = sorted(subplot_dfs, key=lambda d: tuple([d[p[0]].unique()[0] for p in unique_counts]))
         subplot_count = len(subplot_dfs)
 
@@ -200,7 +204,7 @@ def plot_xy(
         subplot_figs = main_fig.subfigures(rows, cols)
     else:
         # make single axes by default
-        subplot_dfs = [df]
+        subplot_dfs = [df if subplots_df_modifier is None else subplots_df_modifier(df)]
         subplot_figs = [main_fig]
     
     # Get all unique group permutations.
@@ -246,6 +250,7 @@ def plot_xy(
         legend.remove()
 
     for df, fig in zip(subplot_dfs, subplot_figs.flat):
+        fig.figure.set_size_inches(fig_w, fig_h)
         if subplots_identifiers is not None:
             fig.suptitle(get_identifiers_label(subplots_identifiers, df=df))
         
@@ -321,5 +326,5 @@ def plot_xy(
     if is_3d:
         main_fig.tight_layout()
     if save_path is not None:
-        plt.savefig(save_path, bbox_inches='tight', dpi=1200)
+        main_fig.savefig(save_path, bbox_inches='tight', dpi=1200)
     plt.close()
