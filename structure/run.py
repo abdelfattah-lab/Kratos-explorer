@@ -35,6 +35,7 @@ class Runner():
         self.experiments += self.factory.gen_experiments(experiment_class, arch, design, params)
 
     def run_all_threaded(self,
+            verbose: bool = False,
             track_run_time: bool = True,
             desc: str = 'run', 
             num_parallel_tasks: int = 1,
@@ -48,6 +49,7 @@ class Runner():
         Main function: run all generated experiments with a thread pool.
 
         Optional arguments:
+        * verbose:bool, prints detailed report of each result if True. Default: False
         * track_run_time:bool, will track total run time and print at the end if True. Default: True
         * desc:str, description of run
         * num_parallel_tasks:int, maximum number of simultaneous threads allowed in the thread pool.
@@ -112,29 +114,34 @@ class Runner():
                 if is_success:
                     successes += 1
 
-                print("====================================")
-                print(f"Result {i+1}/{total_count}: {'succeeded' if is_success else 'failed'}")
-                if track_run_time:
-                    print(f" (Time elapsed for this experiment: {gen_time_elapsed(timer() - exp_start_times[exp])})")
-                
-                print(f"@ root directory {exp.root_dir}")
-                pretty(res_dict, 1)
-                print("====================================")
-                
                 if exp.root_dir in results:
                     results[exp.root_dir].append(res_dict)
                 else:
                     results[exp.root_dir] = [res_dict]
+                
+                if verbose:
+                    print("====================================")
+                    print(f"Result {i+1}/{total_count}: {'succeeded' if is_success else 'failed'}")
+                    if track_run_time:
+                        print(f" (Time elapsed for this experiment: {gen_time_elapsed(timer() - exp_start_times[exp])})")
+                    
+                    print(f"@ root directory {exp.root_dir}")
+                    pretty(res_dict, 1)
+                    print("====================================")
+                else:
+                    print(f"Progress: {i+1}/{total_count} complete ({successes} succeeded)", end='\r', flush=True)
+                                
             except Exception as e:
                 err_str = f"Exception:\n{traceback.format_exc()}\n"
                 with open(os.path.join(exp.exp_dir, runner_err_file), 'w') as f:
                     f.write(err_str)
                 
-                print("!-----------------------------------")
-                print(f"For experiment with directory {exp.exp_dir}, an exception occurred:")
-                print(err_str)
-                print("------------------------------------")
-        
+                if verbose:
+                    print("!-----------------------------------")
+                    print(f"For experiment with directory {exp.exp_dir}, an exception occurred:")
+                    print(err_str)
+                    print("------------------------------------")
+            
         executor.shutdown()
 
         # print summary
