@@ -27,6 +27,17 @@ def run_vtr_denoised_v1(
     1. Runs all provided designs on v0 and v1 architecture on provided seeds.
     2. Averages results across all seeds for each architecture.
     3. Normalize v0 results as 1.0, and v1 results relative to v0. (Baseline normalization)
+    4. Plots normalized results, and saves both baseline and normalized results to the default results folder, under the latest timestamp.
+
+    Required arguments:
+    * design_list:[(Design, params: dict[str, any]), ...], all the designs and their associated full base parameters. You can generate these parameters with the functions under `runs.benchmarks`.
+    * variable_arch_params:dict[str, [...]], variable parameters that are added to the baseline architecture parameters, intended for the v1 architecture.
+    * filter_params_baseline:[str, ...], parameters (non-architecture) that are varied and should be extracted into a DataFrame (e.g., sparsity, data width).
+    
+    Optional arguments:
+    * filter_params_baseline_short_labels:dict[str, str], short translations for parameter keys (e.g., 'sparsity': 's').
+    * filter_results:list[str], list of parameters to extract from VPR. All will be baseline normalized and plotted.
+    * seeds: (int, int, int), a tuple of 3 seeds to use for averaging.
     """
     # x-axis is derived from variable architecture parameters
     filter_params_new = list(variable_arch_params.keys())
