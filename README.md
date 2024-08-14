@@ -44,6 +44,18 @@ This folder contains concrete implementations of the interfaces found in `struct
     - `vtr` contains `VtrExperiment`, which will run the experiment on VTR.
     - `quartus` contains `QuartusExperiment` (TO-DO)
 
+### `runs`
+
+This folder contains run sequences and benchmarks to use:
+- Under `benchmarks`:
+    - `kratos`: full-sized Kratos benchmarks.
+    - `kratos_mini`: scaled-down Kratos benchmarks, for verification of flow correctness.
+- `vtr_denoise_v1` is the following run sequence:
+    1. Runs all provided designs on v0 and v1 architecture on provided seeds.
+    2. Averages results across all seeds for each architecture.
+    3. Normalize v0 results as 1.0, and v1 results relative to v0. (Baseline normalization)
+    4. Plots normalized results, and saves both baseline and normalized results to the default results folder, under the latest timestamp.
+
 ## Usage
 
 ### Creating runs
@@ -124,11 +136,11 @@ This section provides methods to ensure processes will continue running in the b
     - `BASH_RUN_SCRIPT`: directs the script to run *another bash script* in the background.
     - It is *optional* to make this script executable, since `run_bg.sh` will modify the permissions for you.
     - A sample bash script to use, `run_with_venv.sh`, has been included.
-    - Note the **known limitation in terminating the script**, as detailed at the top of this file.
+    - Note the **known limitation in terminating the script**, as detailed at the top of the sample bash script.
 3. To use the script:
     - Start execution: `./run_bg.sh start`
     - Stop execution: `./run_bg.sh stop`
-    - Retart execution: `./run_bg.sh start` (may not work as intended due to the limitation as detailed)
+    - Retart execution: `./run_bg.sh restart` (may not work as intended due to the limitation as detailed)
 
 When the script is running, there will be a few files generated:
 - `<script_name>.out`: This serves as the stdout of the script.
