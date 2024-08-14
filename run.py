@@ -30,6 +30,10 @@ BASE_PARAMS = {
     }
 }
 
+VARIABLE_ARCH_PARAMS = dict(
+    ble_count=list(range(2, 20))
+)
+
 DESIGN_LIST = [
     # Mini benchmarks
     (Conv1dFuDesign(), mini.get_conv_1d_fu_params(BASE_PARAMS)),
@@ -54,9 +58,8 @@ DESIGN_LIST = [
 
 run_vtr_denoised_v1(
     design_list=DESIGN_LIST,
-    variable_arch_params=dict(ble_count=list(range(2, 11, 2))),
+    variable_arch_params=VARIABLE_ARCH_PARAMS,
     filter_params_baseline=['sparsity'],
     filter_params_baseline_short_labels=dict(sparsity='s'),
-    num_parallel_tasks=16,
-    # verbose=True
+    num_parallel_tasks=4,
 )
