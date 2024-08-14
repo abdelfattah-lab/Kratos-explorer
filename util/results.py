@@ -25,7 +25,6 @@ def save_and_plot(
     * do_with_dir_fn:(dir: str) -> None, function is called once the directory is created, and the absolute path is passed as a parameter. Default: None
     * df_mod_fn:(df: DataFrame) -> DataFrame, callable function that will apply modifications to each result DataFrame, and return the result. Default: None 
     * plot_fn:(save_dir: str, filesafe_name: str, df: DataFrame) -> None, callable function that will plot graph(s) and save them into the provided directory. Default: None
-    * dir:str, parent results folder. Default: 'results'
     """
     # Make folder
     folder_path = os.path.join(dir, dt.now().strftime("%d%b%y-%H.%M.%S"))

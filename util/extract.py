@@ -52,15 +52,32 @@ def extract_info_quartus(path='.'):
 
 
 def extract_info_vtr(path='.', extract_blocks_list=['clb', 'fle']) -> dict:
-    # this will extract by default:
-    # status for flow (status)
-    # fmax (fmax)
-    # cirtical path delay (cpd)
-    # route channel width (rcw)
-    # all elements in extract_blocks_list, e.g. clb, fle,
+    """
+    Available extracted information from vpr.out:
 
-    # by 2023.10.12: extract:[status, fmax, cpd, rcw, clb, fle, foutm, fouta, gridn, gridtotal, twl, blocks]
+    Raw data:
+    * status: whether flow succeeded (True/False)
+    * fmax: max frequency, MHz
+    * cpd: critical path delay, ns
+    * rcw: route channel width
+    * area_le: used area of logic only, in MWTAs
+    * area_r: used area of routing, in MWTAs
+    * foutm: max fanout
+    * fouta: average fanout
+    * gridx: number of grids on x
+    * gridy: number of grids on y
+    * gridtotal: total number of grids
+    * twl: total wire length
+    * blocks: total number of blocks, aka primitive cells
+    * tle: total number of logic elements (LEs) used
+    * lelr: LEs used for logic and registers
+    * lelo: LEs used for logic only
+    * lero: LEs used for registers only
+    * <keys specified in extract_blocks_list>: these will extract counts of specific PB types, e.g., CLBs, FLEs.
 
+    Derived:
+    * wlpg: wire length per grid
+    """
     # if extract list is not a list, then we convert it to a list
     if not isinstance(extract_blocks_list, list):
         extract_blocks_list = [extract_blocks_list]
