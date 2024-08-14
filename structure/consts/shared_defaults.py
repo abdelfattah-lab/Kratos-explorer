@@ -7,6 +7,17 @@ DEFAULTS_EXP = {
     'stderr_file': 'std.err',
 }
 
+DEFAULTS_EXP_VTR = {
+    **DEFAULTS_EXP,
+    'seed': 1127,
+    'clean': True,
+    'dry_run': False,
+    'ending': None,
+    'allow_skipping': False,
+    'avoid_mult': True,
+    'force_denser_packing': False
+}
+
 DEFAULTS_EXP_QUARTUS = {
     **DEFAULTS_EXP,
     'output_dir': 'outputs',

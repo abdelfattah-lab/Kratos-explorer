@@ -1,4 +1,5 @@
 from structure.exp import Experiment
+from structure.consts.shared_defaults import DEFAULTS_EXP_VTR
 from structure.consts.shared_requirements import REQUIRED_KEYS_EXP
 from util.extract import extract_info_vtr
 from util.flow import start_dependent_process
@@ -11,7 +12,7 @@ class VtrExperiment(Experiment):
     VTR implementation of an Experiment.
     """
 
-    def run(self, clean=True, dry_run=False, ending=None, seed=1127, allow_skipping=False, avoid_mult=True, **kwargs) -> None:
+    def run(self) -> None:
         """
         Run on VTR.
 
@@ -21,15 +22,27 @@ class VtrExperiment(Experiment):
         seed: random seed for VTR
         allow_skipping: if True, then the experiment is skipped if the folder already exists with valid results
         avoid_mult: if True, then avoids using hard multipliers
+        force_denser_packing: if True, then force VPR to pack as tightly as possible
         """
         self._prerun_check()
 
         # generic experiment setup
-        self._setup_exp(REQUIRED_KEYS_EXP)
-        
+        self._setup_exp(DEFAULTS_EXP_VTR, REQUIRED_KEYS_EXP)
+
+        # get variables
+        dry_run = self.exp_params.get('dry_run', False)
+        allow_skipping = self.exp_params.get('allow_skipping', False)
+
         # Check for viable result (i.e., it has been run in the past)
-        if not dry_run and allow_skipping and self.get_result().get('status', False):
+        if (not dry_run) and allow_skipping and self.get_result().get('status', False):
             return
+        
+        # get variables
+        clean = self.exp_params.get('clean', True)
+        ending = self.exp_params['ending']
+        seed = self.exp_params['seed']
+        avoid_mult = self.exp_params.get('avoid_mult', False)
+        force_denser_packing = self.exp_params.get('force_denser_packing', False)
 
         # generate wrapper file
         wrapper_file_name = 'design.v'
@@ -60,7 +73,16 @@ class VtrExperiment(Experiment):
             cmd += ['-min_hard_mult_size', '9999'] # arbitrarily large multiplier size
         if ending is not None:
             cmd += ['-ending_stage', ending]
-        
+
+        # Add VPR commands
+        if force_denser_packing:
+            # focus solely on area
+            cmd += ['--alpha_clustering', '0']
+
+            # focus solely on signal sharing
+            cmd += ['--connection_driven_clustering', 'on'] 
+            cmd += ['--beta_clustering', '0']
+
         # Make out and error files
         self.stdout_file = open(os.path.join(self.exp_dir, self.exp_params['stdout_file']), 'w')
         self.stderr_file = open(os.path.join(self.exp_dir, self.exp_params['stderr_file']), 'w')

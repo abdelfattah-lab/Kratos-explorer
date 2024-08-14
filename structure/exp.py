@@ -3,7 +3,6 @@ from structure.arch import ArchFactory
 from structure.design import Design
 import structure.consts.keys as keys
 import structure.consts.translation as translations
-from structure.consts.shared_defaults import DEFAULTS_EXP
 
 import os, threading
 from copy import deepcopy
@@ -46,14 +45,15 @@ class Experiment(ParamsChecker, Hashable):
         self.gcthread = None  # thread for garbage collection
         self.result = None  # result of the experiment
 
-    def _setup_exp(self, required_keys: list[str]) -> None:
+    def _setup_exp(self, defaults: dict[str, any], required_keys: list[str]) -> None:
         """
         Sets up the experiment when needed, i.e., make folders and README.
 
-        * required_keys: list of keys that are required in Experiment parameters.
+        * defaults:dict[str, any], default Experiment parameters.
+        * required_keys:list[str], list of keys that are required in Experiment parameters.
         """
         # Check all parameters.
-        self.exp_params = self.verify_required_keys(DEFAULTS_EXP, required_keys, self.exp_params)
+        self.exp_params = self.verify_required_keys(defaults, required_keys, self.exp_params)
          # make root and experiment directory
         self.root_dir = self.exp_params['root_dir']
         self.verilog_search_dir = self.exp_params['verilog_search_dir']

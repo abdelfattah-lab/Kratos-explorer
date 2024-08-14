@@ -115,13 +115,14 @@ def plot_xy(
         df: pd.DataFrame, 
         group_identifiers: list[str], 
         x_axis_col: str | list[str], 
-        y_axis_col: str, 
+        y_axis_col: str | list[str], 
         subplots_identifiers: list[str] = None,
         subplots_df_modifier: Callable[[pd.DataFrame], pd.DataFrame] = None,
         y_axis_col_secondary: str = None,
-        x_axis_label: str = None,
-        y_axis_label: str = None, 
-        y_axis_label_secondary: str = None, 
+        x_axis_label: str | list[str] = None,
+        y_axis_label: str | list[str] = None, 
+        y_axis_label_secondary: str = None,
+        subplot_size_inches: tuple[int, int] = (6, 4), 
         save_path: str = None,
         short_labels: dict[str, str] = None
     ) -> None:
@@ -132,16 +133,27 @@ def plot_xy(
     * df:pandas.DataFrame, dataframe to use as data for plotting.
     * group_identifiers:list[str], Rows with the same group_identifiers values will be plot as a line.
     * x_axis_col:str/list[str], column(s) to use as x-axis value(s) for each line. If a list of length 2 is provided, then a 3D plot is used.
-    * y_axis_col:str, column to use as left y-axis value for each line.
+    * y_axis_col:str/list[str], column(s) to use as left y-axis value for each line. If a list is provided, then subplots_identifiers will be ignored; subplots are created for each y-axis column instead.
 
     Optional arguments:
     * subplots_identifiers:list[str], if provided, then subplots for each subset of unique values of the identifiers will be created, with the group identifiers applied for each.
     * subplots_df_modifier:(df: DataFrame) -> DataFrame, if provided, then apply this function per DataFrame group as partitioned by subplots_identifiers. Default: None
     * y_axis_col_secondary:str, if provided, then a new line is created with this as right y-axis value. Default: None
     * *_axis_label*:str, provide the label to use for each axis. If None is provided, then it defaults to the column name. Default: None
+    * subplot_size_inches:(int, int), size of each subplot, in inches. Default: (6, 4)
     * save_name:str, if provided, then plot image is saved at the provided path; else the result is just displayed. Default: None
     * short_labels:dict[str, str], if provided, then labels are created using the provided <key>: <value to use>; or else keys will be truncated to the first 3 characters by default.
     """
+    # Sanity checks
+    if x_axis_label is not None and type(x_axis_label) is not type(x_axis_col):
+        raise ValueError("Type mismatch between x_axis_label and x_axis_col! Either define both as str or list[str].")
+    if isinstance(x_axis_label, list) and len(x_axis_label) != len(x_axis_col):
+        raise ValueError("Length mismatch between x_axis_label and x_axis_col!")
+    if y_axis_label is not None and type(y_axis_label) is not type(y_axis_col):
+        raise ValueError("Type mismatch between y_axis_label and y_axis_col! Either define both as str or list[str].")
+    if isinstance(y_axis_label, list) and len(y_axis_label) != len(y_axis_col):
+        raise ValueError("Length mismatch between y_axis_label and y_axis_col!")
+    
     # Convenience function for labelling
     def get_identifiers_label(identifiers: list[str], values: list[str] = None, df: pd.DataFrame = None) -> str:
         assert values is not None or df is not None
@@ -181,12 +193,24 @@ def plot_xy(
         y_axis_label_secondary = y_axis_col_secondary
 
     # Set up figure and axes
-    fig_w, fig_h = (20, 20)
+    fig_w, fig_h = subplot_size_inches
     main_fig = plt.figure(constrained_layout=not is_3d)
     subplot_figs = []
     subplot_dfs = []
+    rows, cols = 1, 1
 
-    if subplots_identifiers is not None:
+    is_y_axis_subplot = isinstance(y_axis_col, list)
+    is_identifier_subplot = subplots_identifiers is not None
+    
+    if is_y_axis_subplot:
+        rows, cols = get_portrait_square(len(y_axis_col))
+        
+        def constant_df_iterator():
+            for i in range(len(y_axis_col)):
+                yield df if subplots_df_modifier is None else subplots_df_modifier(df)
+        subplot_dfs = constant_df_iterator()
+        
+    elif is_identifier_subplot:
         # get unique counts
         unique_counts = sorted([(id, df[id].unique().shape[0]) for id in subplots_identifiers], key=lambda p: p[1], reverse=True)
         
@@ -200,13 +224,16 @@ def plot_xy(
         if len(subplots_identifiers) > 1:
             rows = unique_counts[0][-1] # use largest unique count as row count
             cols = subplot_count // rows
-        main_fig.set_size_inches(rows * fig_w, cols * fig_h)
-        subplot_figs = main_fig.subfigures(rows, cols)
     else:
         # make single axes by default
         subplot_dfs = [df if subplots_df_modifier is None else subplots_df_modifier(df)]
         subplot_figs = [main_fig]
     
+    # make subfigures and resize (if required)
+    if is_y_axis_subplot or is_identifier_subplot:
+        main_fig.set_size_inches(fig_w * cols, fig_h * rows)
+        subplot_figs = main_fig.subfigures(rows, cols, width_ratios=[1 for _ in range(cols)], height_ratios=[1 for _ in range(rows)])
+
     # Get all unique group permutations.
     unique_groups = df.value_counts(group_identifiers).index.tolist()
     
@@ -249,11 +276,16 @@ def plot_xy(
             return
         legend.remove()
 
-    for df, fig in zip(subplot_dfs, subplot_figs.flat):
-        fig.figure.set_size_inches(fig_w, fig_h)
-        if subplots_identifiers is not None:
+    for fig_i, (df, fig) in enumerate(zip(subplot_dfs, subplot_figs.flat)):
+        # add y-axis subplot support
+        ycol = y_axis_col[fig_i] if is_y_axis_subplot else y_axis_col
+        ylabel = y_axis_label[fig_i] if is_y_axis_subplot else y_axis_label
+
+        if is_y_axis_subplot:
+            fig.suptitle(ylabel)
+        elif is_identifier_subplot:
             fig.suptitle(get_identifiers_label(subplots_identifiers, df=df))
-        
+
         # Split DataFrame into distinct groups
         groups = [y for _, y in df.groupby(group_identifiers, as_index=False)]
 
@@ -274,7 +306,7 @@ def plot_xy(
                 ypos, xpos = np.meshgrid(*xy_plane)
                 xpos = xpos.flatten()
                 ypos = ypos.flatten()
-                top = grp[y_axis_col].values.ravel()
+                top = grp[ycol].values.ravel()
                 bottom = np.zeros_like(top)
 
                 # plot bar
@@ -289,32 +321,30 @@ def plot_xy(
                 # set axes labels
                 ax.set_xlabel(x_axis_label[0])
                 ax.set_ylabel(x_axis_label[1])
-                ax.set_zlabel(y_axis_label)
+                ax.set_zlabel(ylabel)
 
-                # set view angle
-                ax.view_init(elev=25, azim=-145)
+                # set aspect ratio
+                ax.set_box_aspect(fig_w/fig_h)
 
                 remove_legend(ax)
-            
-            fig.figure.tight_layout()
         else:
             # Normal group plot
-            fig.figure.set_size_inches(fig_w, fig_h)
-
             ax = fig.add_subplot(111)
             ax.set_xlabel(xlabel=x_axis_label)
-            ax.set_ylabel(ylabel=y_axis_label)
+            ax.set_ylabel(ylabel=ylabel)
+            # ax.set_box_aspect(fig_w/fig_h)
             ax2 = None
             if y_axis_col_secondary is not None:
                 ax2 = ax.twinx()
                 ax2.set_ylabel(ylabel=y_axis_label_secondary)
+                # ax2.set_box_aspect(fig_w/fig_h)
 
             for grp in groups:
                 marker, color = attr_map[tuple(grp[col].unique()[0] for col in group_identifiers)]
 
                 # sort group by x-axis
                 grp.sort_values(by=[x_axis_col], inplace=True)
-                grp.plot(x=x_axis_col, y=y_axis_col, kind='line', linestyle='solid', marker=marker, color=color, ax=ax)
+                grp.plot(x=x_axis_col, y=ycol, kind='line', linestyle='solid', marker=marker, color=color, ax=ax)
                 if y_axis_col_secondary is not None:
                     grp.plot(x=x_axis_col, y=y_axis_col_secondary, kind='line', linestyle='dotted', marker=marker, color=color, ax=ax2)
             
@@ -326,5 +356,5 @@ def plot_xy(
     if is_3d:
         main_fig.tight_layout()
     if save_path is not None:
-        main_fig.savefig(save_path, bbox_inches='tight', dpi=1200)
+        main_fig.savefig(save_path, bbox_inches='tight', dpi=600)
     plt.close()
