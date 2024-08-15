@@ -4,6 +4,7 @@ from impl.arch.gen_exp import GenExpArchFactory
 from impl.exp.vtr import VtrExperiment
 from structure.run import Runner
 from structure.design import Design
+from util.calc import merge_op
 from util.results import save_and_plot
 from util.plot import plot_xy
 
@@ -20,6 +21,7 @@ def run_vtr_denoised_v1(
         filter_params_baseline_short_labels: dict[str, str] = {},
         filter_results: list[str] = ['fmax', 'cpd', 'rcw', 'blocks', 'clb', 'fle', 'adder', 'mult_36'],
         seeds: tuple[int, int, int] = (1239, 5741, 1473),
+        merge_designs: bool = False,
         **kwargs
     ) -> None:
     """
@@ -38,6 +40,7 @@ def run_vtr_denoised_v1(
     * filter_params_baseline_short_labels:dict[str, str], short translations for parameter keys (e.g., 'sparsity': 's').
     * filter_results:list[str], list of parameters to extract from VPR. All will be baseline normalized and plotted.
     * seeds: (int, int, int), a tuple of 3 seeds to use for averaging.
+    * merge_designs:bool, will take the geometric mean of all designs as the final result if True, else each design is saved as its own separate experiment. Default: False
     """
     # x-axis is derived from variable architecture parameters
     filter_params_new = list(variable_arch_params.keys())
@@ -113,11 +116,36 @@ def run_vtr_denoised_v1(
 
     # take means of each DataFrame
     for exp_type, dfs in exp_results.items():
+        # used if merge_designs is True
+        merged = None
+
         for key, df in dfs.items():
             flt = filter_params_baseline.copy()
             if exp_type != 'baseline':
                 flt += filter_params_new
-            exp_results[exp_type][key] = df.groupby(by=flt).mean().reset_index()
+            
+            seed_mean = df.groupby(by=flt).mean().reset_index()
+            if merge_designs:
+                # merge all DataFrames into one DataFrame
+                if merged is None:
+                    merged = seed_mean.copy(deep=True)
+                else:
+                    # multiply columns
+                    merged = merge_op(merged, seed_mean, lambda a, b: a * b, flt)
+            else:
+                # save DataFrame individually
+                exp_results[exp_type][key] = seed_mean
+
+        if merge_designs:
+            # drop all other keys
+            keys_to_drop = list(exp_results[exp_type].keys())
+            for key in keys_to_drop:
+                exp_results[exp_type].pop(key, None)
+            
+            # take the n-th root (geometric mean)
+            for col in filter_results:
+                merged[col] **= 1/(len(keys_to_drop))
+            exp_results[exp_type]['merged'] = merged
 
     # baseline normalization and post-processing
     norm_results = exp_results['new']

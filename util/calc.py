@@ -1,6 +1,6 @@
 import math
-from pandas import DataFrame
-from typing import Literal
+from pandas import Series, DataFrame
+from typing import Literal, Callable
 
 def get_portrait_square(n: int) -> tuple[int, int]:
     """
@@ -39,3 +39,33 @@ def normalize_df(df: DataFrame, norm_type: Literal['min-max', 'mean'] = 'mean', 
         raise ValueError("norm_type must be 'min-max' or 'mean'!")
     
     df.update(extracted)
+
+def merge_op(
+        parent: DataFrame, 
+        child: DataFrame, 
+        col_op: Callable[[Series, Series], Series],
+        merge_on: list[str]
+    ) -> DataFrame:
+    """
+    Perform a merge on certain columns, then perform a specified operation on the remaining columns.
+
+    Required arguments:
+    * parent:DataFrame, parent to merge into.
+    * child:DataFrame, child to be merged into parent.
+    * col_op: (Series, Series) -> Series, operation to perform on remaining columns.
+    * merge_on: columns on which to merge child into parent.
+    """
+    # merge both dataframes together
+    suffix = '_<m>'
+    merged = parent.merge(child, on=merge_on,  suffixes=('', suffix))
+    
+    # perform operation
+    rem_cols = parent.columns.drop(merge_on)
+    suffixed_cols = []
+    for col in rem_cols:
+        suffixed_col = f"{col}{suffix}"
+        merged[col] = col_op(merged[col], merged[suffixed_col])
+        suffixed_cols.append(suffixed_col)
+
+    # drop remaining columns
+    return merged.drop(columns=suffixed_cols)
