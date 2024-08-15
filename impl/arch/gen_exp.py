@@ -1367,7 +1367,7 @@ configurable parameters, all integer
 
 # create xml parameters
 """
-def generate_arch(ble_count: int, CLB_groups_per_xb: int, lut_size: int) -> str:
+def get_config_dict(ble_count: int, CLB_groups_per_xb: int, lut_size: int) -> dict[str, any]:
     config_dict = {}
     lut_size_small = lut_size - 1
     lut_size_large = lut_size
@@ -1390,6 +1390,7 @@ def generate_arch(ble_count: int, CLB_groups_per_xb: int, lut_size: int) -> str:
     config_dict['num_pb_fle'] = ble_count # cluster size
     shared_small = floor(lut_size_small / 2) # shared input count
     shared_small = min(shared_small, lut_size_small - 2) # force at least 2 distinct inputs
+    config_dict['shared_pins_small'] = shared_small
     num_pins_small = int(2 * (lut_size_small - shared_small) + shared_small) # total input count
     num_pins_fle = max(comb(4, CLB_groups_per_xb), num_pins_small, lut_size_large) # take minimum required input pins for FLE
 
@@ -1420,9 +1421,7 @@ def generate_arch(ble_count: int, CLB_groups_per_xb: int, lut_size: int) -> str:
     num_feedback_fle = max(1, round(CLB_groups_per_xb / 4 * ble_count)) # ensure at least 1 feedback BLE per xbar
     config_dict['fle_input_xbar'] = gen_xbars(ble_count, num_pins_fle, num_feedback_fle, clb_input_groups_per_xbar=CLB_groups_per_xb)
 
-    out = TEMPLATE.format(**config_dict)
-    return out
-
+    return config_dict
 
 # Specify the parameters and their default values for this architecture here.
 DEFAULTS = {
@@ -1447,4 +1446,165 @@ class GenExpArchFactory(ArchFactory, ParamsChecker):
       Concrete implementation of ArchFactory for Baseline FPGA.
       Required arguments as per DEFAULTS.
       """
-      return generate_arch(**kwargs)
+      return TEMPLATE.format(**get_config_dict(**kwargs))
+    
+    def get_coffe_input_file(self, ble_count: int, CLB_groups_per_xb: int, lut_size: int, **kwargs) -> str:
+       config_dict = get_config_dict(ble_count, CLB_groups_per_xb, lut_size)
+       independent_inputs = lut_size - 1 - config_dict['shared_pins_small']
+       
+       return f"""#######################################
+##### Architecture Parameters
+#######################################
+
+# The following parameters are the classic VPR architecture parameters
+N={ble_count}
+K={lut_size}
+#~25% more than required W on average
+W=125 
+L=4
+I=40
+Fs=3
+Fcin=0.15
+Fcout=0.10
+
+# Number of BLE outputs to general routing 
+Or=2
+# Number of BLE outputs to local routing
+Ofb=2
+# Population of local routing MUXes
+Fclocal={(CLB_groups_per_xb/4):.2f}
+
+# Register select:
+# Defines whether the FF can accept its input directly from a BLE input or not.
+# To turn register-select off, Rsel=z
+Rsel=z
+
+# Register feedback muxes:
+# Defines which LUT inputs support register feedback.
+# Set Rfb to a string of LUT input names.
+# Rfb=z tells COFFE that no LUT input should have register feedback muxes.
+Rfb=z
+
+# Do we want to use fracturable Luts?
+use_fluts=True
+# can be as large as K-1
+independent_inputs = {independent_inputs}
+
+enable_carry_chain = 1
+#the carry chain type could be "skip" or "ripple"
+carry_chain_type = ripple
+FAs_per_flut = 2
+
+# Do we want Block RAM simulation at all?
+enable_bram_module = 0
+
+#Memory block voltage (low power transistors)
+vdd_low_power = 0.95
+
+
+# Memory technology type can be 'SRAM' or 'MTJ'.
+memory_technology = SRAM
+
+# The following determine the number of address bits used in each of the decoders
+# These bits are used to determine the aspect ratio of the memory module
+# Please note: if you use a two-bank BRAM, one of the bits below will be decoded by the bank selection address
+# To make it controllable, I decided that this bit will always be taken from the row decoder.
+
+# Row decoder
+row_decoder_bits = 8
+# Column decoder
+col_decoder_bits = 2
+# Width configurable decoder
+conf_decoder_bits = 5
+# Number of RAM banks
+number_of_banks = 2
+
+
+# voltage difference for the sense amp in volts
+sense_dv = 0.03
+
+# Weakest SRAM cell current in Amps
+worst_read_current = 0.0000015
+
+#MTJ resisitance values for 4 combinations of nominal/worst case for low/high states
+MTJ_Rlow_nominal = 2500
+MTJ_Rhigh_nominal = 6250
+MTJ_Rlow_worstcase = 3060
+MTJ_Rhigh_worstcase = 4840
+
+
+# BRAM read to write ratio for power measurements:
+read_to_write_ratio = 1.0
+
+#######################################
+##### Process Technology Parameters
+#######################################
+
+# Transistor type can be 'bulk' or 'finfet'. 
+# Make sure your spice model file matches the transistor type you choose.
+transistor_type=bulk
+
+# The switch type can be 'pass_transistor' or 'transmission_gate'.
+switch_type=pass_transistor
+#switch_type=transmission_gate
+
+# Supply voltage
+vdd=0.8
+
+# SRAM Vdd
+vsram=1.0
+
+# SRAM Vss
+vsram_n=0.0
+
+# Gate length (nm)
+gate_length=22
+
+# This parameter controls the gate length of PMOS level-restorers. For example, setting this paramater 
+# to 4 sets the gate length to 4x the value of 'gate_legnth'. Increasing the gate length weakens the 
+# PMOS level-restorer, which is sometimes necessary to ensure proper switching.
+rest_length_factor = 1
+
+# Minimum transistor diffusion width (nm).
+min_tran_width=45
+
+# Length of diffusion for a single-finger transistor (nm).
+# COFFE uses this when it calculates source/drain parasitic capacitances.
+trans_diffusion_length = 52
+
+# Minimum-width transistor area (nm^2)
+min_width_tran_area = 33864
+
+# SRAM area (in number of minimum width transistor areas)
+sram_cell_area = 4
+
+# Path to SPICE device models file and library to use
+model_path=spice_models/ptm_22nm_bulk_hp.l
+model_library=22NM_BULK_HP
+
+#######################################
+##### Metal data
+##### R in ohms/nm
+##### C in fF/nm
+##### format: metal=R,C
+##### ex: metal=0.054825,0.000175
+#######################################
+
+# Each 'metal' statement defines a new metal layer. 
+# COFFE uses two metal layers by default. The first metal layer is where COFFE 
+# implements all wires except for the general routing wires. They are implemented
+# in the second metal layer. 
+
+
+# All wires except the general routing wires are implemented in this layer.
+metal=0.054825,0.000175
+
+# General routing wires will be implemented in this layer 
+metal=0.007862,0.000215
+
+# Memory array wires will be implemented in this layer
+metal=0.029240,0.000139
+
+# This layer is used in MTJ wordline (if BRAM technology is MTJ)
+metal=0.227273,0.000000
+"""

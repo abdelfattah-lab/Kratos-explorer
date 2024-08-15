@@ -24,3 +24,6 @@ test_*.py
 # used for background execution
 *.out
 *.pid
+
+# output files for COFFE simulation
+coffe_maker_out
