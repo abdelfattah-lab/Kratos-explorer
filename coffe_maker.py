@@ -17,7 +17,6 @@ parser = argparse.ArgumentParser()
 parser.add_argument('-m', '--arch_module', help="ArchFactory module to use. Currently supported: gen_exp", default='gen_exp')
 parser.add_argument('-p', '--params_file', help="file containing newline separated parameters, intended for the ArchFactory. Each line should have <param>=<value_1>,<value_2>,... e.g., lut_size=3,4,5. You can also specify an integer range, e.g., lut_size=3-6,8")
 parser.add_argument('-o', '--output_dir', help="output directory to put new files in; created for you", default='coffe_maker_out')
-parser.add_argument('-r', '--record_filename', help="name of the record file generated in the output directory", default='record')
 args = parser.parse_args()
 
 params_file_path = args.params_file
@@ -95,5 +94,5 @@ for i, p in enumerate(permutations):
         f.write(arch.get_coffe_input_file(**params))
         log(f"Wrote {filename}.")
 
-pd.DataFrame.from_records(records).to_csv(os.path.join(args.output_dir, f'{args.record_filename}.csv'))
+pd.DataFrame.from_records(records).to_csv(os.path.join(args.output_dir, 'record.csv'))
 log(f"Finished {len(permutations)} file(s).")
