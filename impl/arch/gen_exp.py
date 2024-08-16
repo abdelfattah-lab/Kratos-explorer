@@ -542,26 +542,26 @@ TEMPLATE = '''<!-- Comments are removed to save file size -->
     <!-- Define general purpose logic block (CLB) ends -->
     <!-- Define fracturable multiplier begin -->
     <!-- This multiplier can operate as a 36x36 multiplier that can fracture to two 18x18 multipliers each of which can further fracture to two 9x9 multipliers 
-	   For delay modelling, the 36x36 DSP multiplier in Stratix IV has a delay of 1.523 ns + 1.93 ns
-	    = 3.45 ns. The 18x18 mode doesn't need to sum four 18x18 multipliers, so it is a bit
-	   faster: 1.523 ns for the multiplier, and 1.09 ns for the multiplier output block.
-	    For the input and output interconnect delays, unlike Stratix IV, we don't
-	   have any routing/logic flexibility (crossbars) at the inputs.  There is some output muxing
-	   in Stratix IV and this architecture to select which multiplier outputs should go out (e.g.
-	   9x9 outputs, 18x18 or 36x36) so those are very close between the two architectures. 
-	   We take the conservative (slightly pessimistic)
+       For delay modelling, the 36x36 DSP multiplier in Stratix IV has a delay of 1.523 ns + 1.93 ns
+        = 3.45 ns. The 18x18 mode doesn't need to sum four 18x18 multipliers, so it is a bit
+       faster: 1.523 ns for the multiplier, and 1.09 ns for the multiplier output block.
+        For the input and output interconnect delays, unlike Stratix IV, we don't
+       have any routing/logic flexibility (crossbars) at the inputs.  There is some output muxing
+       in Stratix IV and this architecture to select which multiplier outputs should go out (e.g.
+       9x9 outputs, 18x18 or 36x36) so those are very close between the two architectures. 
+       We take the conservative (slightly pessimistic)
            approach modelling the input as the same as the Stratix IV input delay and the output delay the same as the Stratix IV DSP out delay.
-		   
-	   We estimate block area by using the published Stratix III data (which is architecturally identical to Stratix IV)
-	      (H. Wong, V. Betz and J. Rose, "Comparing FPGA vs. Custom CMOS and the Impact on Processor Microarchitecture", FPGA 2011) of 0.2623 
-		  mm^2 and scaling from 65 to 40 nm to obtain 0.0993 mm^2. That area is for a DSP block with approximately 2x the functionality of 
-		  the block we use (can implement two 36x36 multiplies instead of our 1, eight 18x18 multiplies instead of our 4, etc.). Hence we 
-		  divide the area by 2 to obtain 0.0497 mm^2. One minimum-width transistor units = 60 L^2 (where L = 40 nm), so is 518,000 MWTUS. 
-		  That area includes routing and the connection block input muxes.  Our DSP block is four 
-		  rows high, and hence includes four horizontal routing channel segments and four vertical ones, which is 4x the routing of a logic 
-		  block (single tile). It also includes 3.6x the outputs of a logic block, and 1.8x the inputs. Hence a slight overestimate of the routing
-		  area associated with our DSP block is four times that of a logic tile, where the routing area of a logic tile was calculated above (at W = 300)
-		  as 30481 MWTAs. Hence the (core, non-routing) area our DSP block is approximately 518,000 - 4 * 30,481 = 396,000 MWTUs.
+           
+       We estimate block area by using the published Stratix III data (which is architecturally identical to Stratix IV)
+          (H. Wong, V. Betz and J. Rose, "Comparing FPGA vs. Custom CMOS and the Impact on Processor Microarchitecture", FPGA 2011) of 0.2623 
+          mm^2 and scaling from 65 to 40 nm to obtain 0.0993 mm^2. That area is for a DSP block with approximately 2x the functionality of 
+          the block we use (can implement two 36x36 multiplies instead of our 1, eight 18x18 multiplies instead of our 4, etc.). Hence we 
+          divide the area by 2 to obtain 0.0497 mm^2. One minimum-width transistor units = 60 L^2 (where L = 40 nm), so is 518,000 MWTUS. 
+          That area includes routing and the connection block input muxes.  Our DSP block is four 
+          rows high, and hence includes four horizontal routing channel segments and four vertical ones, which is 4x the routing of a logic 
+          block (single tile). It also includes 3.6x the outputs of a logic block, and 1.8x the inputs. Hence a slight overestimate of the routing
+          area associated with our DSP block is four times that of a logic tile, where the routing area of a logic tile was calculated above (at W = 300)
+          as 30481 MWTAs. Hence the (core, non-routing) area our DSP block is approximately 518,000 - 4 * 30,481 = 396,000 MWTUs.
       -->
     <pb_type name="mult_36">
       <input name="a" num_pins="36"/>
@@ -573,8 +573,8 @@ TEMPLATE = '''<!-- Comments are removed to save file size -->
           <input name="b" num_pins="18"/>
           <output name="out" num_pins="36"/>
           <!-- Model 9x9 delay and 18x18 delay as the same.  9x9 could be faster, but in Stratix IV
-	          isn't, presumably because the multiplier layout is really optimized for 18x18.
-		      -->
+              isn't, presumably because the multiplier layout is really optimized for 18x18.
+              -->
           <mode name="two_mult_9x9">
             <pb_type name="mult_9x9_slice" num_pb="2">
               <input name="A_cfg" num_pins="9"/>
@@ -649,7 +649,7 @@ TEMPLATE = '''<!-- Comments are removed to save file size -->
         </pb_type>
         <interconnect>
           <!-- Stratix IV input delay of 207ps is conservative for this architecture because this architecture does not have an input crossbar in the multiplier. 
-		   Subtract 72.5 ps delay, which is already in the connection block input mux, leading
+           Subtract 72.5 ps delay, which is already in the connection block input mux, leading
               -->
           <direct name="a2a" input="mult_36.a" output="divisible_mult_18x18[1:0].a">
             <delay_constant max="134e-12" in_port="mult_36.a" out_port="divisible_mult_18x18[1:0].a"/>
@@ -690,8 +690,8 @@ TEMPLATE = '''<!-- Comments are removed to save file size -->
         </pb_type>
         <interconnect>
           <!-- Stratix IV input delay of 207ps is conservative for this architecture because this architecture does not have an input crossbar in the multiplier. 
-		   Subtract 72.5 ps delay, which is already in the connection block input mux, leading
-		   to a 134 ps delay.
+           Subtract 72.5 ps delay, which is already in the connection block input mux, leading
+           to a 134 ps delay.
               -->
           <direct name="a2a" input="mult_36.a" output="mult_36x36_slice.A_cfg">
             <delay_constant max="134e-12" in_port="mult_36.a" out_port="mult_36x36_slice.A_cfg"/>
@@ -1304,6 +1304,10 @@ TEMPLATE = '''<!-- Comments are removed to save file size -->
 </architecture>
 '''
 
+def get_shared_inputs_small(lut_size_small):
+    shared_small = floor(lut_size_small / 2) # shared input count
+    return min(shared_small, lut_size_small - 2) # force at least 2 distinct inputs
+
 def gen_xbars(ble_count, num_pins_ble, num_feedback_ble, clb_input_groups = ['I1', 'I2', 'I3', 'I4'], clb_input_groups_per_xbar = 2):
     clb_input_group_count = len(clb_input_groups)
     
@@ -1329,15 +1333,16 @@ def gen_xbars(ble_count, num_pins_ble, num_feedback_ble, clb_input_groups = ['I1
         clb_input_group_labels = [f"clb.{clb_input_groups[x]}" for x in clb_group]
         clb_inputs = ' '.join(clb_input_group_labels)
         delay_constant_clb = '\n'.join(
-            [f'<delay_constant max="95e-12" in_port="{label}" out_port="fle.in[{xbar_count}:{xbar_count}]"/>' for label in clb_input_group_labels]
+            f'<delay_constant max="95e-12" in_port="{label}" out_port="fle.in[{xbar_count}:{xbar_count}]"/>' for label in clb_input_group_labels
         )
 
         feedback_group = all_feedback_group_index_combinations[feedback_i]
         feedback_xb = ' '.join(
-            [f'fle[{x}:{x}].out' for x in feedback_group]
+            f'fle[{x}:{x}].out' for x in feedback_group
         )
         delay_constant_feedback = '\n'.join(
-            [f'<delay_constant max="75e-12" in_port="fle[{x}:{x}].out" out_port="fle.in[{xbar_count}:{xbar_count}]"/>' for x in feedback_group])
+            f'<delay_constant max="75e-12" in_port="fle[{x}:{x}].out" out_port="fle.in[{xbar_count}:{xbar_count}]"/>' for x in feedback_group
+        )
         xbars.append(xbar_template.format(
             i=xbar_count,
             fle_last_index=ble_count - 1,
@@ -1354,7 +1359,7 @@ def gen_xbars(ble_count, num_pins_ble, num_feedback_ble, clb_input_groups = ['I1
         feedback_i += 1
         if feedback_i > max_feedback_i:
             feedback_i = 0 # rotate to 0
-        
+
     return '\n'.join(xbars)
 
 """
@@ -1388,8 +1393,7 @@ def get_config_dict(ble_count: int, CLB_groups_per_xb: int, lut_size: int) -> di
 
     # FLE
     config_dict['num_pb_fle'] = ble_count # cluster size
-    shared_small = floor(lut_size_small / 2) # shared input count
-    shared_small = min(shared_small, lut_size_small - 2) # force at least 2 distinct inputs
+    shared_small = get_shared_inputs_small(lut_size_small)
     config_dict['shared_pins_small'] = shared_small
     num_pins_small = int(2 * (lut_size_small - shared_small) + shared_small) # total input count
     num_pins_fle = max(comb(4, CLB_groups_per_xb), num_pins_small, lut_size_large) # take minimum required input pins for FLE
@@ -1420,7 +1424,6 @@ def get_config_dict(ble_count: int, CLB_groups_per_xb: int, lut_size: int) -> di
     # depop xbar according to (CLB_groups_per_xb/4) %
     num_feedback_fle = max(1, round(CLB_groups_per_xb / 4 * ble_count)) # ensure at least 1 feedback BLE per xbar
     config_dict['fle_input_xbar'] = gen_xbars(ble_count, num_pins_fle, num_feedback_fle, clb_input_groups_per_xbar=CLB_groups_per_xb)
-
     return config_dict
 
 # Specify the parameters and their default values for this architecture here.
@@ -1448,163 +1451,159 @@ class GenExpArchFactory(ArchFactory, ParamsChecker):
       """
       return TEMPLATE.format(**get_config_dict(**kwargs))
     
-    def get_coffe_input_file(self, ble_count: int, CLB_groups_per_xb: int, lut_size: int, **kwargs) -> str:
-       config_dict = get_config_dict(ble_count, CLB_groups_per_xb, lut_size)
-       independent_inputs = lut_size - 1 - config_dict['shared_pins_small']
-       
-       return f"""#######################################
-##### Architecture Parameters
-#######################################
+    def get_coffe_input_dict(self, ble_count: int, CLB_groups_per_xb: int, lut_size: int, **kwargs) -> dict:
+        lut_size_small = lut_size - 1
+        independent_inputs = lut_size_small - get_shared_inputs_small(lut_size_small)
 
-# The following parameters are the classic VPR architecture parameters
-N={ble_count}
-K={lut_size}
-#~25% more than required W on average
-W=125 
-L=4
-I=40
-Fs=3
-Fcin=0.15
-Fcout=0.10
+        return dict(
+            #######################################
+            ##### Architecture Parameters
+            #######################################
 
-# Number of BLE outputs to general routing 
-Or=2
-# Number of BLE outputs to local routing
-Ofb=2
-# Population of local routing MUXes
-Fclocal={(CLB_groups_per_xb/4):.2f}
+            # The following parameters are the classic VPR architecture parameters
+            N = ble_count,
+            K = lut_size,
+            #~25% more than required W on average
+            W=125,
+            L=4,
+            I=40,
+            Fs=3,
+            Fcin=0.15,
+            Fcout=0.10,
 
-# Register select:
-# Defines whether the FF can accept its input directly from a BLE input or not.
-# To turn register-select off, Rsel=z
-Rsel=z
+            # Number of BLE outputs to general routing 
+            Or=2,
+            # Number of BLE outputs to local routing
+            Ofb=2,
+            Fclocal = round(CLB_groups_per_xb/4, 2),
 
-# Register feedback muxes:
-# Defines which LUT inputs support register feedback.
-# Set Rfb to a string of LUT input names.
-# Rfb=z tells COFFE that no LUT input should have register feedback muxes.
-Rfb=z
+            # Register select:
+            # Defines whether the FF can accept its input directly from a BLE input or not.
+            # To turn register-select off, Rsel=z
+            Rsel = 'z',
 
-# Do we want to use fracturable Luts?
-use_fluts=True
-# can be as large as K-1
-independent_inputs = {independent_inputs}
+            # Register feedback muxes:
+            # Defines which LUT inputs support register feedback.
+            # Set Rfb to a string of LUT input names.
+            # Rfb=z tells COFFE that no LUT input should have register feedback muxes.
+            Rfb = 'z',
 
-enable_carry_chain = 1
-#the carry chain type could be "skip" or "ripple"
-carry_chain_type = ripple
-FAs_per_flut = 2
+            # Do we want to use fracturable LUTs?
+            use_fluts = True,
 
-# Do we want Block RAM simulation at all?
-enable_bram_module = 0
-
-#Memory block voltage (low power transistors)
-vdd_low_power = 0.95
+            # can be as large as K-1
+            independent_inputs = independent_inputs,
 
 
-# Memory technology type can be 'SRAM' or 'MTJ'.
-memory_technology = SRAM
+            enable_carry_chain = 1,
+            # the carry chain type could be "skip" or "ripple"
+            carry_chain_type = 'ripple',
+            FAs_per_flut = 2,
 
-# The following determine the number of address bits used in each of the decoders
-# These bits are used to determine the aspect ratio of the memory module
-# Please note: if you use a two-bank BRAM, one of the bits below will be decoded by the bank selection address
-# To make it controllable, I decided that this bit will always be taken from the row decoder.
+           # Do we want Block RAM simulation at all?
+            enable_bram_module = 0,
 
-# Row decoder
-row_decoder_bits = 8
-# Column decoder
-col_decoder_bits = 2
-# Width configurable decoder
-conf_decoder_bits = 5
-# Number of RAM banks
-number_of_banks = 2
+            #Memory block voltage (low power transistors)
+            vdd_low_power = 0.95,
 
 
-# voltage difference for the sense amp in volts
-sense_dv = 0.03
+            # Memory technology type can be 'SRAM' or 'MTJ'.
+            memory_technology = 'SRAM',
 
-# Weakest SRAM cell current in Amps
-worst_read_current = 0.0000015
+            # The following determine the number of address bits used in each of the decoders
+            # These bits are used to determine the aspect ratio of the memory module
+            # Please note: if you use a two-bank BRAM, one of the bits below will be decoded by the bank selection address
+            # To make it controllable, I decided that this bit will always be taken from the row decoder.
 
-#MTJ resisitance values for 4 combinations of nominal/worst case for low/high states
-MTJ_Rlow_nominal = 2500
-MTJ_Rhigh_nominal = 6250
-MTJ_Rlow_worstcase = 3060
-MTJ_Rhigh_worstcase = 4840
-
-
-# BRAM read to write ratio for power measurements:
-read_to_write_ratio = 1.0
-
-#######################################
-##### Process Technology Parameters
-#######################################
-
-# Transistor type can be 'bulk' or 'finfet'. 
-# Make sure your spice model file matches the transistor type you choose.
-transistor_type=bulk
-
-# The switch type can be 'pass_transistor' or 'transmission_gate'.
-switch_type=pass_transistor
-#switch_type=transmission_gate
-
-# Supply voltage
-vdd=0.8
-
-# SRAM Vdd
-vsram=1.0
-
-# SRAM Vss
-vsram_n=0.0
-
-# Gate length (nm)
-gate_length=22
-
-# This parameter controls the gate length of PMOS level-restorers. For example, setting this paramater 
-# to 4 sets the gate length to 4x the value of 'gate_legnth'. Increasing the gate length weakens the 
-# PMOS level-restorer, which is sometimes necessary to ensure proper switching.
-rest_length_factor = 1
-
-# Minimum transistor diffusion width (nm).
-min_tran_width=45
-
-# Length of diffusion for a single-finger transistor (nm).
-# COFFE uses this when it calculates source/drain parasitic capacitances.
-trans_diffusion_length = 52
-
-# Minimum-width transistor area (nm^2)
-min_width_tran_area = 33864
-
-# SRAM area (in number of minimum width transistor areas)
-sram_cell_area = 4
-
-# Path to SPICE device models file and library to use
-model_path=spice_models/ptm_22nm_bulk_hp.l
-model_library=22NM_BULK_HP
-
-#######################################
-##### Metal data
-##### R in ohms/nm
-##### C in fF/nm
-##### format: metal=R,C
-##### ex: metal=0.054825,0.000175
-#######################################
-
-# Each 'metal' statement defines a new metal layer. 
-# COFFE uses two metal layers by default. The first metal layer is where COFFE 
-# implements all wires except for the general routing wires. They are implemented
-# in the second metal layer. 
+            # Row decoder
+            row_decoder_bits = 8,
+            # Column decoder
+            col_decoder_bits = 2,
+            # Width configurable decoder
+            conf_decoder_bits = 5,
+            # Number of RAM banks
+            number_of_banks = 2,
 
 
-# All wires except the general routing wires are implemented in this layer.
-metal=0.054825,0.000175
+            # voltage difference for the sense amp in volts
+            sense_dv = 0.03,
 
-# General routing wires will be implemented in this layer 
-metal=0.007862,0.000215
+            # Weakest SRAM cell current in Amps
+            worst_read_current = 0.0000015,
 
-# Memory array wires will be implemented in this layer
-metal=0.029240,0.000139
+            #MTJ resisitance values for 4 combinations of nominal/worst case for low/high states
+            MTJ_Rlow_nominal = 2500,
+            MTJ_Rhigh_nominal = 6250,
+            MTJ_Rlow_worstcase = 3060,
+            MTJ_Rhigh_worstcase = 4840,
 
-# This layer is used in MTJ wordline (if BRAM technology is MTJ)
-metal=0.227273,0.000000
-"""
+
+            # BRAM read to write ratio for power measurements:
+            read_to_write_ratio = 1.0,
+
+            #######################################
+            ##### Process Technology Parameters
+            #######################################
+
+            # Transistor type can be 'bulk' or 'finfet'. 
+            # Make sure your spice model file matches the transistor type you choose.
+            transistor_type='bulk',
+
+            # The switch type can be 'pass_transistor' or 'transmission_gate'.
+            switch_type='pass_transistor',
+            #switch_type=transmission_gate
+
+            # Supply voltage
+            vdd=0.8,
+
+            # SRAM Vdd
+            vsram=1.0,
+
+            # SRAM Vss
+            vsram_n=0.0,
+
+            # Gate length (nm)
+            gate_length=22,
+
+            # This parameter controls the gate length of PMOS level-restorers. For example, setting this paramater 
+            # to 4 sets the gate length to 4x the value of 'gate_legnth'. Increasing the gate length weakens the 
+            # PMOS level-restorer, which is sometimes necessary to ensure proper switching.
+            rest_length_factor = 1,
+
+            # Minimum transistor diffusion width (nm).
+            min_tran_width=45,
+
+            # Length of diffusion for a single-finger transistor (nm).
+            # COFFE uses this when it calculates source/drain parasitic capacitances.
+            trans_diffusion_length = 52,
+
+            # Minimum-width transistor area (nm^2)
+            min_width_tran_area = 33864,
+
+            # SRAM area (in number of minimum width transistor areas)
+            sram_cell_area = 4,
+
+            # Path to SPICE device models file and library to use
+            model_path='spice_models/ptm_22nm_bulk_hp.l',
+            model_library='22NM_BULK_HP',
+
+            #######################################
+            ##### Metal data
+            ##### R in ohms/nm
+            ##### C in fF/nm
+            ##### format: metal=R,C
+            ##### ex: metal=0.054825,0.000175
+            #######################################
+
+            # Each 'metal' tuple defines a new metal layer. 
+            # COFFE uses two metal layers by default. The first metal layer is where COFFE 
+            # implements all wires except for the general routing wires. They are implemented
+            # in the second metal layer. 
+           
+            metal = [
+                (0.054825,0.000175), # All wires except the general routing wires are implemented in this layer.
+                (0.007862,0.000215), # General routing wires will be implemented in this layer
+                (0.029240,0.000139), # Memory array wires will be implemented in this layer
+                (0.227273,0.000000), # This layer is used in MTJ wordline (if BRAM technology is MTJ)
+            ]
+        )

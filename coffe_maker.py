@@ -17,6 +17,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument('-m', '--arch_module', help="ArchFactory module to use. Currently supported: gen_exp", default='gen_exp')
 parser.add_argument('-p', '--params_file', help="file containing newline separated parameters, intended for the ArchFactory. Each line should have <param>=<value_1>,<value_2>,... e.g., lut_size=3,4,5. You can also specify an integer range, e.g., lut_size=3-6,8")
 parser.add_argument('-o', '--output_dir', help="output directory to put new files in; created for you", default='coffe_maker_out')
+parser.add_argument('-r', '--record_filename', help=".csv record file name; defaults to 'record'.", default='record')
 args = parser.parse_args()
 
 params_file_path = args.params_file
@@ -83,16 +84,22 @@ permutations = [dict(zip(keys, combination)) for combination in itertools.produc
 
 # make directory and write
 os.makedirs(args.output_dir, exist_ok=True)
-records = []
-for i, p in enumerate(permutations):
-    params = arch.verify_params(p)
-    filename = f"{args.arch_module}_{arch.get_name(**params)}.txt"
-    records.append({**params, 'coffe_filename': filename})
 
-    filename = os.path.join(args.output_dir, filename)
-    with open(filename, 'w') as f:
-        f.write(arch.get_coffe_input_file(**params))
-        log(f"Wrote {filename}.")
+# c
+def convert_to_record(params):
+    params = arch.verify_params(params)
+    coffe_dict = arch.get_coffe_input_dict(**params)
+    # translate metal layers to individual columns
+    for i, (r, c) in enumerate(coffe_dict['metal']):
+        coffe_dict[f'metal{i}'] = f'{r},{c}'
+    # add metal layer count
+    coffe_dict['metal_count'] = len(coffe_dict['metal'])
+    # remove original metal key
+    del coffe_dict['metal']
+    # attach prefix to avoid clashing
+    return params | { f'coffe_{k}': v for k, v in coffe_dict.items() }
 
-pd.DataFrame.from_records(records).to_csv(os.path.join(args.output_dir, 'record.csv'))
+# write record file
+records = [convert_to_record(p) for p in permutations]
+pd.DataFrame.from_records(records).to_csv(os.path.join(args.output_dir, f'{args.record_filename}.csv'))
 log(f"Finished {len(permutations)} file(s).")

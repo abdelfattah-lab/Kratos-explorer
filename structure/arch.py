@@ -24,15 +24,15 @@ class ArchFactory(DynamicallyNamed):
         """
         self.raise_unimplemented("get_arch")
 
-    def get_coffe_input_file(self, **kwargs) -> str:
+    def get_coffe_input_dict(self, **kwargs) -> dict:
         """
         {abstract}
         
-        Gets a COFFE input file for the architecture to simulate required area and timing parameters.
+        Gets a COFFE input dictionary for the architecture to simulate required area and timing parameters.
 
-        @return "input.txt" file, in a single string.
+        @return COFFE architecture dictionary.
         """
-        self.raise_unimplemented("get_coffe_input_file")
+        self.raise_unimplemented("get_coffe_input_dict")
 
     def get_coffe_archive_values(self,
             search_kwargs: dict[str, any],
