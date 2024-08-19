@@ -150,18 +150,9 @@ def run_vtr_denoised_v1(
     # baseline normalization and post-processing
     norm_results = exp_results['new']
     for key, df in norm_results.items():
-        suffix = '_baseline'
-        # merge both dataframes together
-        modified = df.merge(exp_results['baseline'][key], on=filter_params_baseline, suffixes=('', suffix))
-        # divide by baseline
-        for col in filter_results:
-            modified[col] /= modified[f"{col}{suffix}"]
-        # drop additional columns
-        modified = modified.drop(columns=[f"{col}{suffix}" for col in filter_results])
+        # perform merge and divide by baseline
+        norm_results[key] = merge_op(df, exp_results['baseline'][key], lambda a, b: a / b, filter_params_baseline)
 
-        # save into results
-        norm_results[key] = modified
-    
     # save baseline results
     def do_with_dir_fn(dir: str):
         for exp_dir, df in exp_results['baseline'].items():

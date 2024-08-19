@@ -60,7 +60,7 @@ def merge_op(
     merged = parent.merge(child, on=merge_on,  suffixes=('', suffix))
     
     # perform operation
-    rem_cols = parent.columns.drop(merge_on)
+    rem_cols = parent.columns.intersection(child.columns).drop(merge_on)
     suffixed_cols = []
     for col in rem_cols:
         suffixed_col = f"{col}{suffix}"
