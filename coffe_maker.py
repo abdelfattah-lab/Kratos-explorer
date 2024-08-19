@@ -16,7 +16,7 @@ import pandas as pd
 parser = argparse.ArgumentParser()
 parser.add_argument('-m', '--arch_module', help="ArchFactory module to use. Currently supported: gen_exp", default='gen_exp')
 parser.add_argument('-p', '--params_file', help="file containing newline separated parameters, intended for the ArchFactory. Each line should have <param>=<value_1>,<value_2>,... e.g., lut_size=3,4,5. You can also specify an integer range, e.g., lut_size=3-6,8")
-parser.add_argument('-o', '--output_dir', help="output directory to put new files in; created for you", default='coffe_maker_out')
+parser.add_argument('-o', '--output_dir', help="output directory to put new files in; created for you; defaults to 'coffe_maker_out'.", default='coffe_maker_out')
 parser.add_argument('-r', '--record_filename', help=".csv record file name; defaults to 'record'.", default='record')
 args = parser.parse_args()
 
@@ -102,4 +102,4 @@ def convert_to_record(params):
 # write record file
 records = [convert_to_record(p) for p in permutations]
 pd.DataFrame.from_records(records).to_csv(os.path.join(args.output_dir, f'{args.record_filename}.csv'))
-log(f"Finished {len(permutations)} file(s).")
+log(f"Made record file with {len(permutations)} entr(ies).")
