@@ -21,6 +21,9 @@ test_*.*
 *.png
 *.jpg
 
+# include archive files
+!**/coffe_archives/*.csv
+
 # used for background execution
 *.out
 *.pid
