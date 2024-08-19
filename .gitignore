@@ -14,7 +14,7 @@ experiments*/
 results*/
 .vscode
 experiments.zip
-test_*.py
+test_*.*
 
 # possible result file extensions
 *.csv
