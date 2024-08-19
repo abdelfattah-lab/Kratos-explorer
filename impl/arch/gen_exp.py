@@ -86,7 +86,7 @@ TEMPLATE = '''<!-- Comments are removed to save file size -->
         </pinlocations>
       </sub_tile>
     </tile>
-    <tile name="clb" area="53894">
+    <tile name="clb" area="{mwta_clb}">
       <sub_tile name="clb">
         <equivalent_sites>
           <site pb_type="clb" pin_mapping="direct"/>
@@ -194,9 +194,9 @@ TEMPLATE = '''<!-- Comments are removed to save file size -->
            2.5x when looking up in Jeff's tables.
            Finally, we choose a switch delay (58 ps) that leads to length 4 wires having a delay equal to that of SIV of 126 ps.
            This also leads to the switch being 46% of the total wire delay, which is reasonable. -->
-    <switch type="mux" name="0" R="551" Cin=".77e-15" Cout="4e-15" Tdel="58e-12" mux_trans_size="2.630740" buf_size="27.645901"/>
+    <switch type="mux" name="0" R="551" Cin=".77e-15" Cout="4e-15" Tdel="{Tdel}" mux_trans_size="{mwta_switch_mux_trans}" buf_size="{mwta_switch_buf}"/>
     <!--switch ipin_cblock resistance set to yeild for 4x minimum drive strength buffer-->
-    <switch type="mux" name="ipin_cblock" R="2231.5" Cout="0." Cin="1.47e-15" Tdel="7.247000e-11" mux_trans_size="1.222260" buf_size="auto"/>
+    <switch type="mux" name="ipin_cblock" R="2231.5" Cout="0." Cin="1.47e-15" Tdel="{T_ipin_cblock}" mux_trans_size="{mwta_ipin_mux_trans}" buf_size="{mwta_cb_buf}"/>
   </switchlist>
   <segmentlist>
     <!--- VB & JL: using ITRS metal stack data, 96 nm half pitch wires, which are intermediate metal width/space.  
@@ -1337,7 +1337,7 @@ def get_pin_counts(ble_count: int, CLB_groups_per_xb: int, lut_size: int) -> dic
 
     return ret
 
-def gen_xbars(ble_count, num_pins_ble, num_feedback_ble, clb_input_groups = ['I1', 'I2', 'I3', 'I4'], clb_input_groups_per_xbar = 2):
+def gen_xbars(coffe_dict, ble_count, num_pins_ble, num_feedback_ble, clb_input_groups = ['I1', 'I2', 'I3', 'I4'], clb_input_groups_per_xbar = 2):
     clb_input_group_count = len(clb_input_groups)
     
     if clb_input_groups_per_xbar > clb_input_group_count:
@@ -1355,6 +1355,8 @@ def gen_xbars(ble_count, num_pins_ble, num_feedback_ble, clb_input_groups = ['I1
 {delay_constant_feedback}
 </complete>"""
 
+    T_local_CLB_routing = coffe_dict['T_local_CLB_routing']
+    T_local_feedback = coffe_dict['T_local_feedback']
     xbars = []
     xbar_count = 0
     while xbar_count < num_pins_ble:
@@ -1362,7 +1364,7 @@ def gen_xbars(ble_count, num_pins_ble, num_feedback_ble, clb_input_groups = ['I1
         clb_input_group_labels = [f"clb.{clb_input_groups[x]}" for x in clb_group]
         clb_inputs = ' '.join(clb_input_group_labels)
         delay_constant_clb = '\n'.join(
-            f'<delay_constant max="95e-12" in_port="{label}" out_port="fle.in[{xbar_count}:{xbar_count}]"/>' for label in clb_input_group_labels
+            f'<delay_constant max="{T_local_CLB_routing}" in_port="{label}" out_port="fle.in[{xbar_count}:{xbar_count}]"/>' for label in clb_input_group_labels
         )
 
         feedback_group = all_feedback_group_index_combinations[feedback_i]
@@ -1370,7 +1372,7 @@ def gen_xbars(ble_count, num_pins_ble, num_feedback_ble, clb_input_groups = ['I1
             f'fle[{x}:{x}].out' for x in feedback_group
         )
         delay_constant_feedback = '\n'.join(
-            f'<delay_constant max="75e-12" in_port="fle[{x}:{x}].out" out_port="fle.in[{xbar_count}:{xbar_count}]"/>' for x in feedback_group
+            f'<delay_constant max="{T_local_feedback}" in_port="fle[{x}:{x}].out" out_port="fle.in[{xbar_count}:{xbar_count}]"/>' for x in feedback_group
         )
         xbars.append(xbar_template.format(
             i=xbar_count,
@@ -1401,7 +1403,7 @@ configurable parameters, all integer
 
 # create xml parameters
 """
-def get_config_dict(ble_count: int, CLB_groups_per_xb: int, lut_size: int) -> dict[str, any]:
+def get_config_dict(coffe_dict: dict[str, any], ble_count: int, CLB_groups_per_xb: int, lut_size: int) -> dict[str, any]:
     config_dict = {}
     pin_dict = get_pin_counts(ble_count, CLB_groups_per_xb, lut_size)
 
@@ -1443,8 +1445,8 @@ def get_config_dict(ble_count: int, CLB_groups_per_xb: int, lut_size: int) -> di
 
     # depop xbar according to (CLB_groups_per_xb/4) %
     num_feedback_fle = max(1, round(CLB_groups_per_xb / 4 * ble_count)) # ensure at least 1 feedback BLE per xbar
-    config_dict['fle_input_xbar'] = gen_xbars(ble_count, num_pins_fle, num_feedback_fle, clb_input_groups_per_xbar=CLB_groups_per_xb)
-    return config_dict
+    config_dict['fle_input_xbar'] = gen_xbars(coffe_dict, ble_count, num_pins_fle, num_feedback_fle, clb_input_groups_per_xbar=CLB_groups_per_xb)
+    return config_dict | coffe_dict
 
 # Specify the parameters and their default values for this architecture here.
 DEFAULTS = {
@@ -1464,12 +1466,33 @@ class GenExpArchFactory(ArchFactory, ParamsChecker):
     def get_name(self, ble_count: int, CLB_groups_per_xb: int, lut_size: int, **kwargs) -> str:
       return f"N.{ble_count}_K.{lut_size}_xb.{CLB_groups_per_xb}"
 
-    def get_arch(self, **kwargs) -> str:
+    def get_arch(self, ble_count: int, CLB_groups_per_xb: int, lut_size: int, **kwargs) -> str:
       """
       Concrete implementation of ArchFactory for Baseline FPGA.
       Required arguments as per DEFAULTS.
       """
-      return TEMPLATE.format(**get_config_dict(**kwargs))
+      # attempt extraction of archive values
+      coffe_dict = self.get_coffe_archive_values(
+         search_kwargs=dict(
+            ble_count=ble_count,
+            CLB_groups_per_xb=CLB_groups_per_xb,
+            lut_size=lut_size,
+         ),
+         defaults=dict(
+            Tdel=58e-12,
+            T_ipin_cblock=7.247000e-11,
+            T_local_CLB_routing=95e-12,
+            T_local_feedback=75e-12,
+            # T_logic_block_output=, # COFFE assumes equal for FF and direct out; but arch file specifies two separate values, so we ignore this for now
+            mwta_clb=53894,
+            mwta_ipin_mux_trans=1.222260,
+            mwta_switch_mux_trans=2.630740,
+            mwta_switch_buf=27.645901,
+            mwta_cb_buf='auto',
+         )
+      )
+
+      return TEMPLATE.format(**get_config_dict(coffe_dict, ble_count, CLB_groups_per_xb, lut_size))
     
     def get_coffe_input_dict(self, ble_count: int, CLB_groups_per_xb: int, lut_size: int, **kwargs) -> dict:
         pin_dict = get_pin_counts(ble_count, CLB_groups_per_xb, lut_size)

@@ -85,7 +85,7 @@ TEMPLATE = '''<!-- Comments are removed to save file size -->
         </pinlocations>
       </sub_tile>
     </tile>
-    <tile name="clb" area="53894">
+    <tile name="clb" area="{mwta_clb}">
       <sub_tile name="clb">
         <equivalent_sites>
           <site pb_type="clb" pin_mapping="direct"/>
@@ -153,24 +153,24 @@ TEMPLATE = '''<!-- Comments are removed to save file size -->
   </layout>
   <device>
     <!-- VB & JL: Using Ian Kuon's transistor sizing and drive strength data for routing, at 40 nm. Ian used BPTM 
-			     models. We are modifying the delay values however, to include metal C and R, which allows more architecture
-			     experimentation. We are also modifying the relative resistance of PMOS to be 1.8x that of NMOS
-			     (vs. Ian's 3x) as 1.8x lines up with Jeff G's data from a 45 nm process (and is more typical of 
-			     45 nm in general). I'm upping the Rmin_nmos from Ian's just over 6k to nearly 9k, and dropping 
-			     RminW_pmos from 18k to 16k to hit this 1.8x ratio, while keeping the delays of buffers approximately
-			     lined up with Stratix IV. 
-			     We are using Jeff G.'s capacitance data for 45 nm (in tech/ptm_45nm).
-			     Jeff's tables list C in for transistors with widths in multiples of the minimum feature size (45 nm).
-			     The minimum contactable transistor is 2.5 * 45 nm, so I need to multiply drive strength sizes in this file
-	                     by 2.5x when looking up in Jeff's tables.
-			     The delay values are lined up with Stratix IV, which has an architecture similar to this
-			     proposed FPGA, and which is also 40 nm 
-			     C_ipin_cblock: input capacitance of a track buffer, which VPR assumes is a single-stage
-			     4x minimum drive strength buffer. -->
+           models. We are modifying the delay values however, to include metal C and R, which allows more architecture
+           experimentation. We are also modifying the relative resistance of PMOS to be 1.8x that of NMOS
+           (vs. Ian's 3x) as 1.8x lines up with Jeff G's data from a 45 nm process (and is more typical of 
+           45 nm in general). I'm upping the Rmin_nmos from Ian's just over 6k to nearly 9k, and dropping 
+           RminW_pmos from 18k to 16k to hit this 1.8x ratio, while keeping the delays of buffers approximately
+           lined up with Stratix IV. 
+           We are using Jeff G.'s capacitance data for 45 nm (in tech/ptm_45nm).
+           Jeff's tables list C in for transistors with widths in multiples of the minimum feature size (45 nm).
+           The minimum contactable transistor is 2.5 * 45 nm, so I need to multiply drive strength sizes in this file
+                       by 2.5x when looking up in Jeff's tables.
+           The delay values are lined up with Stratix IV, which has an architecture similar to this
+           proposed FPGA, and which is also 40 nm 
+           C_ipin_cblock: input capacitance of a track buffer, which VPR assumes is a single-stage
+           4x minimum drive strength buffer. -->
     <sizing R_minW_nmos="8926" R_minW_pmos="16067"/>
     <!-- The grid_logic_tile_area below will be used for all blocks that do not explicitly set their own (non-routing)
-     	  area; set to 0 since we explicitly set the area of all blocks currently in this architecture file.
-	    -->
+         area; set to 0 since we explicitly set the area of all blocks currently in this architecture file.
+      -->
     <area grid_logic_tile_area="0"/>
     <chan_width_distr>
       <x distr="uniform" peak="1.000000"/>
@@ -193,9 +193,9 @@ TEMPLATE = '''<!-- Comments are removed to save file size -->
            2.5x when looking up in Jeff's tables.
            Finally, we choose a switch delay (58 ps) that leads to length 4 wires having a delay equal to that of SIV of 126 ps.
            This also leads to the switch being 46% of the total wire delay, which is reasonable. -->
-    <switch type="mux" name="0" R="551" Cin=".77e-15" Cout="4e-15" Tdel="58e-12" mux_trans_size="2.630740" buf_size="27.645901"/>
+    <switch type="mux" name="0" R="551" Cin=".77e-15" Cout="4e-15" Tdel="{Tdel}" mux_trans_size="{mwta_switch_mux_trans}" buf_size="{mwta_switch_buf}"/>
     <!--switch ipin_cblock resistance set to yeild for 4x minimum drive strength buffer-->
-    <switch type="mux" name="ipin_cblock" R="2231.5" Cout="0." Cin="1.47e-15" Tdel="7.247000e-11" mux_trans_size="1.222260" buf_size="auto"/>
+    <switch type="mux" name="ipin_cblock" R="2231.5" Cout="0." Cin="1.47e-15" Tdel="{T_ipin_cblock}" mux_trans_size="{mwta_ipin_mux_trans}" buf_size="{mwta_cb_buf}"/>
   </switchlist>
   <segmentlist>
     <!--- VB & JL: using ITRS metal stack data, 96 nm half pitch wires, which are intermediate metal width/space.  
@@ -219,10 +219,10 @@ TEMPLATE = '''<!-- Comments are removed to save file size -->
       <output name="inpad" num_pins="1"/>
       <clock name="clock" num_pins="1"/>
       <!-- IOs can operate as either inputs or outputs.
-	     Delays below come from Ian Kuon. They are small, so they should be interpreted as
-	     the delays to and from registers in the I/O (and generally I/Os are registered 
-	     today and that is when you timing analyze them.
-	     -->
+       Delays below come from Ian Kuon. They are small, so they should be interpreted as
+       the delays to and from registers in the I/O (and generally I/Os are registered 
+       today and that is when you timing analyze them.
+       -->
       <mode name="inpad">
         <pb_type name="inpad" blif_model=".input" num_pb="1">
           <output name="inpad" num_pins="1"/>
@@ -254,14 +254,14 @@ TEMPLATE = '''<!-- Comments are removed to save file size -->
     <!-- Define I/O pads ends -->
     <!-- Define general purpose logic block (CLB) begin -->
     <!--- Area calculation: Total Stratix IV tile area is about 8100 um^2, and a minimum width transistor 
-	   area is 60 L^2 yields a tile area of 84375 MWTAs.
-	   Routing at W=300 is 30481 MWTAs, leaving us with a total of 53000 MWTAs for logic block area 
-	   This means that only 37% of our area is in the general routing, and 63% is inside the logic
-	   block. Note that the crossbar / local interconnect is considered part of the logic block
-	   area in this analysis. That is a lower proportion of of routing area than most academics
-	   assume, but note that the total routing area really includes the crossbar, which would push
-	   routing area up significantly, we estimate into the ~70% range. 
-	   -->
+     area is 60 L^2 yields a tile area of 84375 MWTAs.
+     Routing at W=300 is 30481 MWTAs, leaving us with a total of 53000 MWTAs for logic block area 
+     This means that only 37% of our area is in the general routing, and 63% is inside the logic
+     block. Note that the crossbar / local interconnect is considered part of the logic block
+     area in this analysis. That is a lower proportion of of routing area than most academics
+     assume, but note that the total routing area really includes the crossbar, which would push
+     routing area up significantly, we estimate into the ~70% range. 
+     -->
     <pb_type name="clb">
       <input name="I1" num_pins="{num_pins_I1}" equivalent="full"/>
       <input name="I2" num_pins="{num_pins_I2}" equivalent="full"/>
@@ -510,43 +510,43 @@ TEMPLATE = '''<!-- Comments are removed to save file size -->
            to get the part that should be marked on the crossbar.	 -->
         <!-- 50% sparsely populated local routing -->
         <complete name="lutA" input="clb.I4 clb.I3 {feedback_xbA}" output="fle[9:0].in[0:0]">
-          <delay_constant max="95e-12" in_port="clb.I4" out_port="fle.in[0:0]"/>
-          <delay_constant max="95e-12" in_port="clb.I3" out_port="fle.in[0:0]"/>
+          <delay_constant max="{T_local_CLB_routing}" in_port="clb.I4" out_port="fle.in[0:0]"/>
+          <delay_constant max="{T_local_CLB_routing}" in_port="clb.I3" out_port="fle.in[0:0]"/>
 {delay_constant_xbA}
         </complete>
         <complete name="lutB" input="clb.I3 clb.I2 {feedback_xbB}" output="fle[9:0].in[1:1]">
-          <delay_constant max="95e-12" in_port="clb.I3" out_port="fle.in[1:1]"/>
-          <delay_constant max="95e-12" in_port="clb.I2" out_port="fle.in[1:1]"/>
+          <delay_constant max="{T_local_CLB_routing}" in_port="clb.I3" out_port="fle.in[1:1]"/>
+          <delay_constant max="{T_local_CLB_routing}" in_port="clb.I2" out_port="fle.in[1:1]"/>
 {delay_constant_xbB}
         </complete>
         <complete name="lutC" input="clb.I2 clb.I1 {feedback_xbC}" output="fle[9:0].in[2:2]">
-          <delay_constant max="95e-12" in_port="clb.I2" out_port="fle.in[2:2]"/>
-          <delay_constant max="95e-12" in_port="clb.I1" out_port="fle.in[2:2]"/>
+          <delay_constant max="{T_local_CLB_routing}" in_port="clb.I2" out_port="fle.in[2:2]"/>
+          <delay_constant max="{T_local_CLB_routing}" in_port="clb.I1" out_port="fle.in[2:2]"/>
 {delay_constant_xbC}
         </complete>
         <complete name="lutD" input="clb.I4 clb.I2 {feedback_xbD}" output="fle[9:0].in[3:3]">
-          <delay_constant max="95e-12" in_port="clb.I4" out_port="fle.in[3:3]"/>
-          <delay_constant max="95e-12" in_port="clb.I2" out_port="fle.in[3:3]"/>
+          <delay_constant max="{T_local_CLB_routing}" in_port="clb.I4" out_port="fle.in[3:3]"/>
+          <delay_constant max="{T_local_CLB_routing}" in_port="clb.I2" out_port="fle.in[3:3]"/>
 {delay_constant_xbD}
         </complete>
         <complete name="lutE" input="clb.I3 clb.I1 {feedback_xbE}" output="fle[9:0].in[4:4]">
-          <delay_constant max="95e-12" in_port="clb.I3" out_port="fle.in[4:4]"/>
-          <delay_constant max="95e-12" in_port="clb.I1" out_port="fle.in[4:4]"/>
+          <delay_constant max="{T_local_CLB_routing}" in_port="clb.I3" out_port="fle.in[4:4]"/>
+          <delay_constant max="{T_local_CLB_routing}" in_port="clb.I1" out_port="fle.in[4:4]"/>
 {delay_constant_xbE}
         </complete>
         <complete name="lutF" input="clb.I4 clb.I1 {feedback_xbF}" output="fle[9:0].in[5:5]">
-          <delay_constant max="95e-12" in_port="clb.I4" out_port="fle.in[5:5]"/>
-          <delay_constant max="95e-12" in_port="clb.I1" out_port="fle.in[5:5]"/>
+          <delay_constant max="{T_local_CLB_routing}" in_port="clb.I4" out_port="fle.in[5:5]"/>
+          <delay_constant max="{T_local_CLB_routing}" in_port="clb.I1" out_port="fle.in[5:5]"/>
 {delay_constant_xbF}
         </complete>
         <complete name="lutG" input="clb.I4 clb.I3 {feedback_xbG}" output="fle[9:0].in[6:6]">
-          <delay_constant max="95e-12" in_port="clb.I4" out_port="fle.in[6:6]"/>
-          <delay_constant max="95e-12" in_port="clb.I3" out_port="fle.in[6:6]"/>
+          <delay_constant max="{T_local_CLB_routing}" in_port="clb.I4" out_port="fle.in[6:6]"/>
+          <delay_constant max="{T_local_CLB_routing}" in_port="clb.I3" out_port="fle.in[6:6]"/>
 {delay_constant_xbG}
         </complete>
         <complete name="lutH" input="clb.I3 clb.I2 {feedback_xbH}" output="fle[9:0].in[7:7]">
-          <delay_constant max="95e-12" in_port="clb.I3" out_port="fle.in[7:7]"/>
-          <delay_constant max="95e-12" in_port="clb.I2" out_port="fle.in[7:7]"/>
+          <delay_constant max="{T_local_CLB_routing}" in_port="clb.I3" out_port="fle.in[7:7]"/>
+          <delay_constant max="{T_local_CLB_routing}" in_port="clb.I2" out_port="fle.in[7:7]"/>
 {delay_constant_xbH}
         </complete>
         <complete name="clks" input="clb.clk" output="fle[9:0].clk">
@@ -575,26 +575,26 @@ TEMPLATE = '''<!-- Comments are removed to save file size -->
     <!-- Define general purpose logic block (CLB) ends -->
     <!-- Define fracturable multiplier begin -->
     <!-- This multiplier can operate as a 36x36 multiplier that can fracture to two 18x18 multipliers each of which can further fracture to two 9x9 multipliers 
-	   For delay modelling, the 36x36 DSP multiplier in Stratix IV has a delay of 1.523 ns + 1.93 ns
-	    = 3.45 ns. The 18x18 mode doesn't need to sum four 18x18 multipliers, so it is a bit
-	   faster: 1.523 ns for the multiplier, and 1.09 ns for the multiplier output block.
-	    For the input and output interconnect delays, unlike Stratix IV, we don't
-	   have any routing/logic flexibility (crossbars) at the inputs.  There is some output muxing
-	   in Stratix IV and this architecture to select which multiplier outputs should go out (e.g.
-	   9x9 outputs, 18x18 or 36x36) so those are very close between the two architectures. 
-	   We take the conservative (slightly pessimistic)
+     For delay modelling, the 36x36 DSP multiplier in Stratix IV has a delay of 1.523 ns + 1.93 ns
+      = 3.45 ns. The 18x18 mode doesn't need to sum four 18x18 multipliers, so it is a bit
+     faster: 1.523 ns for the multiplier, and 1.09 ns for the multiplier output block.
+      For the input and output interconnect delays, unlike Stratix IV, we don't
+     have any routing/logic flexibility (crossbars) at the inputs.  There is some output muxing
+     in Stratix IV and this architecture to select which multiplier outputs should go out (e.g.
+     9x9 outputs, 18x18 or 36x36) so those are very close between the two architectures. 
+     We take the conservative (slightly pessimistic)
            approach modelling the input as the same as the Stratix IV input delay and the output delay the same as the Stratix IV DSP out delay.
-		   
-	   We estimate block area by using the published Stratix III data (which is architecturally identical to Stratix IV)
-	      (H. Wong, V. Betz and J. Rose, "Comparing FPGA vs. Custom CMOS and the Impact on Processor Microarchitecture", FPGA 2011) of 0.2623 
-		  mm^2 and scaling from 65 to 40 nm to obtain 0.0993 mm^2. That area is for a DSP block with approximately 2x the functionality of 
-		  the block we use (can implement two 36x36 multiplies instead of our 1, eight 18x18 multiplies instead of our 4, etc.). Hence we 
-		  divide the area by 2 to obtain 0.0497 mm^2. One minimum-width transistor units = 60 L^2 (where L = 40 nm), so is 518,000 MWTUS. 
-		  That area includes routing and the connection block input muxes.  Our DSP block is four 
-		  rows high, and hence includes four horizontal routing channel segments and four vertical ones, which is 4x the routing of a logic 
-		  block (single tile). It also includes 3.6x the outputs of a logic block, and 1.8x the inputs. Hence a slight overestimate of the routing
-		  area associated with our DSP block is four times that of a logic tile, where the routing area of a logic tile was calculated above (at W = 300)
-		  as 30481 MWTAs. Hence the (core, non-routing) area our DSP block is approximately 518,000 - 4 * 30,481 = 396,000 MWTUs.
+       
+     We estimate block area by using the published Stratix III data (which is architecturally identical to Stratix IV)
+        (H. Wong, V. Betz and J. Rose, "Comparing FPGA vs. Custom CMOS and the Impact on Processor Microarchitecture", FPGA 2011) of 0.2623 
+      mm^2 and scaling from 65 to 40 nm to obtain 0.0993 mm^2. That area is for a DSP block with approximately 2x the functionality of 
+      the block we use (can implement two 36x36 multiplies instead of our 1, eight 18x18 multiplies instead of our 4, etc.). Hence we 
+      divide the area by 2 to obtain 0.0497 mm^2. One minimum-width transistor units = 60 L^2 (where L = 40 nm), so is 518,000 MWTUS. 
+      That area includes routing and the connection block input muxes.  Our DSP block is four 
+      rows high, and hence includes four horizontal routing channel segments and four vertical ones, which is 4x the routing of a logic 
+      block (single tile). It also includes 3.6x the outputs of a logic block, and 1.8x the inputs. Hence a slight overestimate of the routing
+      area associated with our DSP block is four times that of a logic tile, where the routing area of a logic tile was calculated above (at W = 300)
+      as 30481 MWTAs. Hence the (core, non-routing) area our DSP block is approximately 518,000 - 4 * 30,481 = 396,000 MWTUs.
       -->
     <pb_type name="mult_36">
       <input name="a" num_pins="36"/>
@@ -606,8 +606,8 @@ TEMPLATE = '''<!-- Comments are removed to save file size -->
           <input name="b" num_pins="18"/>
           <output name="out" num_pins="36"/>
           <!-- Model 9x9 delay and 18x18 delay as the same.  9x9 could be faster, but in Stratix IV
-	          isn't, presumably because the multiplier layout is really optimized for 18x18.
-		      -->
+            isn't, presumably because the multiplier layout is really optimized for 18x18.
+          -->
           <mode name="two_mult_9x9">
             <pb_type name="mult_9x9_slice" num_pb="2">
               <input name="A_cfg" num_pins="9"/>
@@ -682,7 +682,7 @@ TEMPLATE = '''<!-- Comments are removed to save file size -->
         </pb_type>
         <interconnect>
           <!-- Stratix IV input delay of 207ps is conservative for this architecture because this architecture does not have an input crossbar in the multiplier. 
-		   Subtract 72.5 ps delay, which is already in the connection block input mux, leading
+       Subtract 72.5 ps delay, which is already in the connection block input mux, leading
               -->
           <direct name="a2a" input="mult_36.a" output="divisible_mult_18x18[1:0].a">
             <delay_constant max="134e-12" in_port="mult_36.a" out_port="divisible_mult_18x18[1:0].a"/>
@@ -723,8 +723,8 @@ TEMPLATE = '''<!-- Comments are removed to save file size -->
         </pb_type>
         <interconnect>
           <!-- Stratix IV input delay of 207ps is conservative for this architecture because this architecture does not have an input crossbar in the multiplier. 
-		   Subtract 72.5 ps delay, which is already in the connection block input mux, leading
-		   to a 134 ps delay.
+       Subtract 72.5 ps delay, which is already in the connection block input mux, leading
+       to a 134 ps delay.
               -->
           <direct name="a2a" input="mult_36.a" output="mult_36x36_slice.A_cfg">
             <delay_constant max="134e-12" in_port="mult_36.a" out_port="mult_36x36_slice.A_cfg"/>
@@ -746,19 +746,19 @@ TEMPLATE = '''<!-- Comments are removed to save file size -->
            Area and delay based off Stratix IV 9K and 144K memories (delay from linear interpolation, Tsu(483 ps, 636 ps) Tco(1084ps, 1969ps)).  
            Input delay = 204ps (from Stratix IV LAB line) - 72ps (this architecture does not lump connection box delay in internal delay)
            Output delay = M9K buffer 50ps
-		   
-		   Area is obtained by appropriately scaling and adjusting the published Stratix III (which is architecturally identical to Stratix IV)
-		   data from H. Wong, V. Betz and J. Rose, "Comparing FPGA vs. Custom CMOS and the Impact on Processor Microarchitecture", FPGA 2011.
-		   Linearly interpolating (by bit count) between the M9k and M144k areas to obtain an M32k (our RAM size) point yields a 65 nm area of
-		   of 0.153 mm^2. Interpolating based on port count between the RAMs would instead yield an area of 0.209 mm^2 for our 32 kB RAM; since 
-		   bit count accounts for more area than ports for a RAM this size we choose the bit count interpolation; however, since the port interpolation
-		   is not radically different this also gives us confidence that interpolating based on bits is OK, but slightly underpredicts area.
-		   Scaling to 40 nm^2 yields .0579 mm^2, and converting to MWTUs at 60 L^2 / MWTU yields 604,000 MWTUs. This includes routing. A Stratix IV
-		   M9K RAM is one row high and hence has one routing tile (one horizonal and one vertical routing segment area). An M144k RAM has 8 such tiles.
-		   Linearly interpolating on
-		   bits to 32 kb yields 2.2 routing tiles incorporated in the area number above. The inter-block routing represents 30% of the area of a logic 
-		   tile according to D. Lewis et al, "Architectural Enhancements in Stratix V," FPGA 2013. Hence we should subtract 0.3 * 2.2 * 84,375 MWTUs to
-		   obtain a RAM core area (not including inter-block routing) of 548,000 MWTU areas for our 32 kb RAM in a 40 nm process.
+       
+       Area is obtained by appropriately scaling and adjusting the published Stratix III (which is architecturally identical to Stratix IV)
+       data from H. Wong, V. Betz and J. Rose, "Comparing FPGA vs. Custom CMOS and the Impact on Processor Microarchitecture", FPGA 2011.
+       Linearly interpolating (by bit count) between the M9k and M144k areas to obtain an M32k (our RAM size) point yields a 65 nm area of
+       of 0.153 mm^2. Interpolating based on port count between the RAMs would instead yield an area of 0.209 mm^2 for our 32 kB RAM; since 
+       bit count accounts for more area than ports for a RAM this size we choose the bit count interpolation; however, since the port interpolation
+       is not radically different this also gives us confidence that interpolating based on bits is OK, but slightly underpredicts area.
+       Scaling to 40 nm^2 yields .0579 mm^2, and converting to MWTUs at 60 L^2 / MWTU yields 604,000 MWTUs. This includes routing. A Stratix IV
+       M9K RAM is one row high and hence has one routing tile (one horizonal and one vertical routing segment area). An M144k RAM has 8 such tiles.
+       Linearly interpolating on
+       bits to 32 kb yields 2.2 routing tiles incorporated in the area number above. The inter-block routing represents 30% of the area of a logic 
+       tile according to D. Lewis et al, "Architectural Enhancements in Stratix V," FPGA 2013. Hence we should subtract 0.3 * 2.2 * 84,375 MWTUs to
+       obtain a RAM core area (not including inter-block routing) of 548,000 MWTU areas for our 32 kb RAM in a 40 nm process.
       -->
     <pb_type name="memory">
       <input name="addr1" num_pins="15"/>
@@ -1337,21 +1337,37 @@ TEMPLATE = '''<!-- Comments are removed to save file size -->
 </architecture>
 '''
 
-"""
-configurable parameters, all integer
-*CLB_pins_per_group = 13
-*num_feedback_ble = 5
-*lut_size = 6
-- lut_size_small = lut_size - 1
-- lut_size_large = lut_size
-*adder size is not supported yet
+def get_pin_counts(CLB_pins_per_group: int, num_feedback_ble: int, lut_size: int) -> dict[str, int]:
+    ret = {}
 
-# create xml parameters
-"""
-def generate_arch(CLB_pins_per_group: int, num_feedback_ble: int, lut_size: int) -> str:
-    config_dict = {}
     lut_size_small = lut_size - 1
     lut_size_large = lut_size
+    ret['K_small'] = lut_size_small
+    ret['K_large'] = lut_size_large
+
+    # FLE
+    num_pins_fle = 8 # fixed at 8 for this architecture
+    ret['I_shared'] = max(2 * lut_size_small - num_pins_fle, 0)
+
+    return ret
+
+def generate_arch(coffe_dict: dict[str, any], CLB_pins_per_group: int, num_feedback_ble: int, lut_size: int) -> str:
+    """
+    configurable parameters, all integer
+    *CLB_pins_per_group = 13
+    *num_feedback_ble = 5
+    *lut_size = 6
+    - lut_size_small = lut_size - 1
+    - lut_size_large = lut_size
+    *adder size is not supported yet
+
+    # create xml parameters
+    """
+    config_dict = {}
+    pin_dict = get_pin_counts(CLB_pins_per_group, num_feedback_ble, lut_size)
+
+    lut_size_small = pin_dict['K_small']
+    lut_size_large = pin_dict['K_large']
 
     # CLB input
     config_dict['num_pins_I1'] = CLB_pins_per_group
@@ -1369,11 +1385,12 @@ def generate_arch(CLB_pins_per_group: int, num_feedback_ble: int, lut_size: int)
     config_dict['lutS_delat_mat'] = '\n'.join(['235e-12'] * lut_size_small)
     config_dict['lutSinter_to_ble_pin_1'] = str(lut_size_small-1) + ':0'
     config_dict['lutSinter_to_ble_pin_2'] = '7:' + str(8-lut_size_small)
-    # arithmetic
 
-    config_dict['arithmetic_num_pins'] = str(min(4, lut_size_small))
-    config_dict['arithmetic_pin_index'] = str(min(4, lut_size_small)-1) + ':0'
-    config_dict['arith_lut_delat_mat'] = '\n'.join(['195e-12'] * min(4, lut_size_small))
+    # arithmetic
+    arith_num_pins = min(4, lut_size_small)
+    config_dict['arithmetic_num_pins'] = str(arith_num_pins)
+    config_dict['arithmetic_pin_index'] = str(arith_num_pins-1) + ':0'
+    config_dict['arith_lut_delat_mat'] = '\n'.join(['195e-12'] * arith_num_pins)
 
     # large lut
     config_dict['n1_lutL'] = 'n1_lut' + str(lut_size_large)
@@ -1381,15 +1398,18 @@ def generate_arch(CLB_pins_per_group: int, num_feedback_ble: int, lut_size: int)
     config_dict['num_pins_lutL'] = lut_size_large
     config_dict['lutL'] = 'lut' + str(lut_size_large)
     config_dict['lutL_delat_mat'] = '\n'.join(['261e-12'] * lut_size_large)
-    config_dict['fle_to_bleL_pin_index'] = str(lut_size_large-1) + ':0'
+    config_dict['fle_to_bleL_pin_index'] = str(lut_size_large-1) + ':0' 
+    
     # feedback
     index_ = 'ABCDEFGH'
+    T_local_feedback = coffe_dict['T_local_feedback']
     feedback_group_pin_index = distribute_pins(10, num_feedback_ble, 8)
     for i in range(8):
         config_dict[f'feedback_xb{index_[i]}'] = ' '.join([f'fle[{x}:{x}].out' for x in feedback_group_pin_index[i]])
-        config_dict[f'delay_constant_xb{index_[i]}'] = '\n'.join([f'<delay_constant max="75e-12" in_port="fle[{x}:{x}].out" out_port="fle.in[{i}:{i}]"/>' for x in feedback_group_pin_index[i]])
+        config_dict[f'delay_constant_xb{index_[i]}'] = '\n'.join([f'<delay_constant max="{T_local_feedback}" in_port="fle[{x}:{x}].out" out_port="fle.in[{i}:{i}]"/>' for x in feedback_group_pin_index[i]])
 
-    out = TEMPLATE.format(**config_dict)
+    # insert COFFE parameters too
+    out = TEMPLATE.format(**config_dict, **coffe_dict)
     return out
 
 
@@ -1411,9 +1431,185 @@ class BaseArchFactory(ArchFactory, ParamsChecker):
     def get_name(self, CLB_pins_per_group: int, num_feedback_ble: int, lut_size: int, **kwargs) -> str:
       return f"clb.{CLB_pins_per_group}_ble.{num_feedback_ble}_lut.{lut_size}"
 
-    def get_arch(self, **kwargs) -> str:
+    def get_arch(self, CLB_pins_per_group: int, num_feedback_ble: int, lut_size: int, **kwargs) -> str:
       """
       Concrete implementation of ArchFactory for Baseline FPGA.
       Required arguments as per DEFAULTS.
       """
-      return generate_arch(**kwargs)
+      # attempt extraction of archive values
+      coffe_dict = self.get_coffe_archive_values(
+         search_kwargs=dict(
+            CLB_pins_per_group=CLB_pins_per_group,
+            num_feedback_ble=num_feedback_ble,
+            lut_size=lut_size,
+         ),
+         defaults=dict(
+            Tdel=58e-12,
+            T_ipin_cblock=7.247000e-11,
+            T_local_CLB_routing=95e-12,
+            T_local_feedback=75e-12,
+            # T_logic_block_output=, # COFFE assumes equal for FF and direct out; but arch file specifies two separate values, so we ignore this for now
+            mwta_clb=53894,
+            mwta_ipin_mux_trans=1.222260,
+            mwta_switch_mux_trans=2.630740,
+            mwta_switch_buf=27.645901,
+            mwta_cb_buf='auto',
+         )
+      )
+
+      return generate_arch(coffe_dict, CLB_pins_per_group, num_feedback_ble, lut_size)
+    
+    def get_coffe_input_dict(self, CLB_pins_per_group: int, num_feedback_ble: int, lut_size: int, **kwargs) -> dict:
+        pin_dict = get_pin_counts(CLB_pins_per_group, num_feedback_ble, lut_size)
+
+        return dict(
+            #######################################
+            ##### Architecture Parameters
+            #######################################
+
+            # The following parameters are the classic VPR architecture parameters
+            N = 10,
+            K = lut_size,
+            #~25% more than required W on average
+            W=125,
+            L=4,
+            I=CLB_pins_per_group * 4,
+            Fs=3,
+            Fcin=0.15,
+            Fcout=0.10,
+
+            # Number of BLE outputs to general routing 
+            Or=2,
+            # Number of BLE outputs to local routing
+            Ofb=2,
+            Fclocal=round(num_feedback_ble / 10, 2),
+
+            # Register select:
+            # Defines whether the FF can accept its input directly from a BLE input or not.
+            # To turn register-select off, Rsel=z
+            Rsel = 'z',
+
+            # Register feedback muxes:
+            # Defines which LUT inputs support register feedback.
+            # Set Rfb to a string of LUT input names.
+            # Rfb=z tells COFFE that no LUT input should have register feedback muxes.
+            Rfb = 'z',
+
+            # Do we want to use fracturable LUTs?
+            use_fluts = True,
+
+            # can be as large as K-1
+            independent_inputs = pin_dict['K_small'] - pin_dict['I_shared'],
+
+            enable_carry_chain = 1,
+            # the carry chain type could be "skip" or "ripple"
+            carry_chain_type = 'ripple',
+            FAs_per_flut = 2,
+
+           # Do we want Block RAM simulation at all?
+            enable_bram_module = 0,
+
+            #Memory block voltage (low power transistors)
+            vdd_low_power = 0.95,
+
+
+            # Memory technology type can be 'SRAM' or 'MTJ'.
+            memory_technology = 'SRAM',
+
+            # The following determine the number of address bits used in each of the decoders
+            # These bits are used to determine the aspect ratio of the memory module
+            # Please note: if you use a two-bank BRAM, one of the bits below will be decoded by the bank selection address
+            # To make it controllable, I decided that this bit will always be taken from the row decoder.
+
+            # Row decoder
+            row_decoder_bits = 8,
+            # Column decoder
+            col_decoder_bits = 2,
+            # Width configurable decoder
+            conf_decoder_bits = 5,
+            # Number of RAM banks
+            number_of_banks = 2,
+
+
+            # voltage difference for the sense amp in volts
+            sense_dv = 0.03,
+
+            # Weakest SRAM cell current in Amps
+            worst_read_current = 0.0000015,
+
+            #MTJ resisitance values for 4 combinations of nominal/worst case for low/high states
+            MTJ_Rlow_nominal = 2500,
+            MTJ_Rhigh_nominal = 6250,
+            MTJ_Rlow_worstcase = 3060,
+            MTJ_Rhigh_worstcase = 4840,
+
+
+            # BRAM read to write ratio for power measurements:
+            read_to_write_ratio = 1.0,
+
+            #######################################
+            ##### Process Technology Parameters
+            #######################################
+
+            # Transistor type can be 'bulk' or 'finfet'. 
+            # Make sure your spice model file matches the transistor type you choose.
+            transistor_type='bulk',
+
+            # The switch type can be 'pass_transistor' or 'transmission_gate'.
+            switch_type='pass_transistor',
+            #switch_type=transmission_gate
+
+            # Supply voltage
+            vdd=0.8,
+
+            # SRAM Vdd
+            vsram=1.0,
+
+            # SRAM Vss
+            vsram_n=0.0,
+
+            # Gate length (nm)
+            gate_length=22,
+
+            # This parameter controls the gate length of PMOS level-restorers. For example, setting this paramater 
+            # to 4 sets the gate length to 4x the value of 'gate_legnth'. Increasing the gate length weakens the 
+            # PMOS level-restorer, which is sometimes necessary to ensure proper switching.
+            rest_length_factor = 1,
+
+            # Minimum transistor diffusion width (nm).
+            min_tran_width=45,
+
+            # Length of diffusion for a single-finger transistor (nm).
+            # COFFE uses this when it calculates source/drain parasitic capacitances.
+            trans_diffusion_length = 52,
+
+            # Minimum-width transistor area (nm^2)
+            min_width_tran_area = 33864,
+
+            # SRAM area (in number of minimum width transistor areas)
+            sram_cell_area = 4,
+
+            # Path to SPICE device models file and library to use
+            model_path='spice_models/ptm_22nm_bulk_hp.l',
+            model_library='22NM_BULK_HP',
+
+            #######################################
+            ##### Metal data
+            ##### R in ohms/nm
+            ##### C in fF/nm
+            ##### format: metal=R,C
+            ##### ex: metal=0.054825,0.000175
+            #######################################
+
+            # Each 'metal' tuple defines a new metal layer. 
+            # COFFE uses two metal layers by default. The first metal layer is where COFFE 
+            # implements all wires except for the general routing wires. They are implemented
+            # in the second metal layer. 
+           
+            metal = [
+                (0.054825,0.000175), # All wires except the general routing wires are implemented in this layer.
+                (0.007862,0.000215), # General routing wires will be implemented in this layer
+                (0.029240,0.000139), # Memory array wires will be implemented in this layer
+                (0.227273,0.000000), # This layer is used in MTJ wordline (if BRAM technology is MTJ)
+            ]
+        )
