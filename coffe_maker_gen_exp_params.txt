@@ -1,0 +1,2 @@
+ble_count=2-30
+lut_size=5
