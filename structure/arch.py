@@ -2,7 +2,6 @@ from structure.util import DynamicallyNamed
 
 import sys, os
 import pandas as pd
-from copy import deepcopy
 
 class ArchFactory(DynamicallyNamed):
     """
@@ -65,7 +64,7 @@ class ArchFactory(DynamicallyNamed):
         """
         # Get specified archive file path
         if filename is None:
-            filename = self.__module__
+            filename = self.__module__.split('.')[-1] # take last module name
         archive_path = os.path.join(os.path.dirname(sys.modules[self.__module__].__file__), folder, f"{filename}.csv")
 
         # Check for existence
@@ -80,7 +79,7 @@ class ArchFactory(DynamicallyNamed):
         for col, val in search_kwargs.items():
             if isinstance(val, str):
                 val = f'"{val}"'
-        query_str_segments.append(f'`{col}`=={val}')
+            query_str_segments.append(f'`{col}`=={val}')
         query_str = ' & '.join(query_str_segments)
         
         # Make query
