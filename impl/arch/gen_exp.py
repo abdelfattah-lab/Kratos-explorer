@@ -1304,9 +1304,38 @@ TEMPLATE = '''<!-- Comments are removed to save file size -->
 </architecture>
 '''
 
-def get_shared_inputs_small(lut_size_small):
+def get_pin_counts(ble_count: int, CLB_groups_per_xb: int, lut_size: int) -> dict[str, any]:
+    """
+    Return pin counts.
+    """
+    ret = {}
+
+    # general
+    lut_size_large = lut_size
+    lut_size_small = lut_size - 1
+    ret['K_large'] = lut_size_large
+    ret['K_small'] = lut_size_small
+
+    # CLB
+    CLB_pins_total = round(lut_size_small / 2 * (4 * ble_count + 1)) # using empirical formula K'(N'+1)/2, with K' = K - 1, N' = 4N
+    CLB_rem = CLB_pins_total % 4
+    if CLB_rem > 0:
+      # round up to nearest multiple of 4
+      CLB_pins_total += 4 - CLB_rem
+    CLB_pins_per_group = int(CLB_pins_total / 4)
+    ret['I_CLB'] = CLB_pins_per_group
+    ret['O_CLB'] = ble_count * 2
+
+    # FLE
     shared_small = floor(lut_size_small / 2) # shared input count
-    return min(shared_small, lut_size_small - 2) # force at least 2 distinct inputs
+    ret['I_shared'] = min(shared_small, lut_size_small - 2) # force at least 2 distinct inputs
+    
+    num_pins_small = int(2 * (lut_size_small - shared_small) + shared_small) # total input count
+    num_pins_fle = max(comb(4, CLB_groups_per_xb), num_pins_small, lut_size_large) # take minimum required input pins for FLE
+    ret['I_BLE_total'] = num_pins_small
+    ret['I_FLE'] = num_pins_fle
+
+    return ret
 
 def gen_xbars(ble_count, num_pins_ble, num_feedback_ble, clb_input_groups = ['I1', 'I2', 'I3', 'I4'], clb_input_groups_per_xbar = 2):
     clb_input_group_count = len(clb_input_groups)
@@ -1374,30 +1403,21 @@ configurable parameters, all integer
 """
 def get_config_dict(ble_count: int, CLB_groups_per_xb: int, lut_size: int) -> dict[str, any]:
     config_dict = {}
-    lut_size_small = lut_size - 1
-    lut_size_large = lut_size
+    pin_dict = get_pin_counts(ble_count, CLB_groups_per_xb, lut_size)
 
-    # CLB
-    CLB_pins_total = round(lut_size_small / 2 * (4 * ble_count + 1)) # using empirical formula K'(N'+1)/2, with K' = K - 1, N' = 4N
-    CLB_rem = CLB_pins_total % 4
-    if CLB_rem > 0:
-      # round up to nearest multiple of 4
-      CLB_pins_total += 4 - CLB_rem
-    CLB_pins_per_group = int(CLB_pins_total / 4)
-    # CLB_pins_per_group = 5
+    lut_size_small = pin_dict['K_small']
+    lut_size_large = pin_dict['K_large']
+
     num_opins_clb = ble_count * 2 # output pins
-    config_dict['num_pins_clb'] = CLB_pins_per_group
-    config_dict['num_opins_clb'] = num_opins_clb
+    config_dict['num_pins_clb'] = pin_dict['I_CLB']
+    config_dict['num_opins_clb'] = pin_dict['O_CLB']
     config_dict['clb_opin_range_1'] = f"{ble_count - 1}:0"
     config_dict['clb_opin_range_2'] = f"{num_opins_clb - 1}:{ble_count}"
 
     # FLE
     config_dict['num_pb_fle'] = ble_count # cluster size
-    shared_small = get_shared_inputs_small(lut_size_small)
-    config_dict['shared_pins_small'] = shared_small
-    num_pins_small = int(2 * (lut_size_small - shared_small) + shared_small) # total input count
-    num_pins_fle = max(comb(4, CLB_groups_per_xb), num_pins_small, lut_size_large) # take minimum required input pins for FLE
-
+    num_pins_small = pin_dict['I_BLE_total']
+    num_pins_fle = pin_dict['I_FLE']
     config_dict['num_pins_fle'] = num_pins_fle
     config_dict['fle_pins_last_index'] = ble_count - 1
     config_dict['fle_pins_2last_index'] = ble_count - 2
@@ -1452,8 +1472,7 @@ class GenExpArchFactory(ArchFactory, ParamsChecker):
       return TEMPLATE.format(**get_config_dict(**kwargs))
     
     def get_coffe_input_dict(self, ble_count: int, CLB_groups_per_xb: int, lut_size: int, **kwargs) -> dict:
-        lut_size_small = lut_size - 1
-        independent_inputs = lut_size_small - get_shared_inputs_small(lut_size_small)
+        pin_dict = get_pin_counts(ble_count, CLB_groups_per_xb, lut_size)
 
         return dict(
             #######################################
@@ -1466,7 +1485,7 @@ class GenExpArchFactory(ArchFactory, ParamsChecker):
             #~25% more than required W on average
             W=125,
             L=4,
-            I=40,
+            I=pin_dict['I_CLB'] * 4,
             Fs=3,
             Fcin=0.15,
             Fcout=0.10,
@@ -1492,7 +1511,7 @@ class GenExpArchFactory(ArchFactory, ParamsChecker):
             use_fluts = True,
 
             # can be as large as K-1
-            independent_inputs = independent_inputs,
+            independent_inputs = pin_dict['K_small'] - pin_dict['I_shared'],
 
 
             enable_carry_chain = 1,
