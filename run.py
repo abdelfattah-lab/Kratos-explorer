@@ -19,9 +19,10 @@ import os.path as path
 BASE_PARAMS = {
     keys.KEY_EXP: {
         'verilog_search_dir': path.join(path.dirname(path.realpath(__file__)), 'verilog'),
-        'allow_skipping': True,
+        # ... additional Experiment.run() parameters
     },
     keys.KEY_ARCH: {
+        # fixed architecture parameters for both baseline and explored
         'lut_size': 3,
     },
     keys.KEY_DESIGN: {
