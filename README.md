@@ -145,3 +145,15 @@ This section provides methods to ensure processes will continue running in the b
 When the script is running, there will be a few files generated:
 - `<script_name>.out`: This serves as the stdout of the script.
 - `<script_name>.pid`: This logs the PID of the *parent bash script*.
+
+### COFFE Maker
+
+This repository contains `coffe_maker.py`, which is intended to be used with the organization-forked `COFFE`'s `coffe_drinker.py` in the following steps:
+1. Use the `maker` to generate a `record.csv` file for all COFFE jobs to run, based on architecture and parameters.
+2. Use the `drinker` to run all COFFE jobs in multiple processes, and generate an archive `.csv` file.
+3. Insert this archive file at the appropriate location in `Kratos-explorer` so the `ArchFactory`s can look up historical COFFE estimates when required:
+    - Inside a directory sharing the same root folder as the module file containing the `ArchFactory`. Directory name will depend on the `ArchFactory` (Default is `coffe_archives`).
+    - Save the archive file with a filename specified by the `ArchFactory`, or else match the module filename: e.g., `arch_module.py` will look for `arch_module.csv` by default.
+    - For example, for `GenExpArchFactory`, to save the archive file:
+        - Directory is at `impl/arch/coffe_archives`.
+        - Filename is `gen_exp.csv`.
