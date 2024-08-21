@@ -4,7 +4,7 @@ from structure.design import Design
 import structure.consts.keys as keys
 import structure.consts.translation as translations
 
-import os, threading
+import os, shutil, threading
 from copy import deepcopy
 from typing import Type, TypeVar, Callable
 from tabulate import tabulate
@@ -45,12 +45,16 @@ class Experiment(ParamsChecker, Hashable):
         self.gcthread = None  # thread for garbage collection
         self.result = None  # result of the experiment
 
-    def _setup_exp(self, defaults: dict[str, any], required_keys: list[str]) -> None:
+    def _setup_exp(self, defaults: dict[str, any], required_keys: list[str], clear_exp_dir: bool = False) -> None:
         """
         Sets up the experiment when needed, i.e., make folders and README.
 
+        Required arguments:
         * defaults:dict[str, any], default Experiment parameters.
         * required_keys:list[str], list of keys that are required in Experiment parameters.
+
+        Optional arguments:
+        * clear_exp_dir:bool, if True, then wipes any existing files from a previous run if the experiment folder already exists. Default: False
         """
         # Check all parameters.
         self.exp_params = self.verify_required_keys(defaults, required_keys, self.exp_params)
@@ -58,6 +62,9 @@ class Experiment(ParamsChecker, Hashable):
         self.root_dir = self.exp_params['root_dir']
         self.verilog_search_dir = self.exp_params['verilog_search_dir']
         self.exp_dir = os.path.join(self.root_dir, f"{self.arch.get_name(**self.arch_params)}--{self.design.get_name(**self.design_params)}")
+        if os.path.exists(self.exp_dir) and clear_exp_dir:
+            # attempt folder removal
+            shutil.rmtree(self.exp_dir, ignore_errors=True)
         os.makedirs(self.exp_dir, exist_ok=True)
 
         # generate README file

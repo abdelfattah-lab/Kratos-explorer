@@ -25,13 +25,13 @@ class VtrExperiment(Experiment):
         force_denser_packing: if True, then force VPR to pack as tightly as possible
         """
         self._prerun_check()
-
-        # generic experiment setup
-        self._setup_exp(DEFAULTS_EXP_VTR, REQUIRED_KEYS_EXP)
-
+        
         # get variables
         dry_run = self.exp_params.get('dry_run', False)
         allow_skipping = self.exp_params.get('allow_skipping', False)
+
+        # generic experiment setup
+        self._setup_exp(DEFAULTS_EXP_VTR, REQUIRED_KEYS_EXP, clear_exp_dir=not allow_skipping)
 
         # Check for viable result (i.e., it has been run in the past)
         if (not dry_run) and allow_skipping and self.get_result().get('status', False):
