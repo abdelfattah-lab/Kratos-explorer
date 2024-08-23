@@ -14,7 +14,7 @@ import itertools
 import pandas as pd
 
 parser = argparse.ArgumentParser()
-parser.add_argument('-m', '--arch_module', help="ArchFactory module to use. Currently supported: gen_exp", default='gen_exp')
+parser.add_argument('-m', '--arch_module', help="ArchFactory module to use. Currently supported: base, gen_exp", default='gen_exp')
 parser.add_argument('-p', '--params_file', help="file containing newline separated parameters, intended for the ArchFactory. Each line should have <param>=<value_1>,<value_2>,... e.g., lut_size=3,4,5. You can also specify an integer range, e.g., lut_size=3-6,8")
 parser.add_argument('-o', '--output_dir', help="output directory to put new files in; created for you; defaults to 'coffe_maker_out'.", default='coffe_maker_out')
 parser.add_argument('-r', '--record_filename', help=".csv record file name; defaults to 'record'.", default='record')
@@ -27,7 +27,10 @@ if params_file_path is None or not os.path.exists(params_file_path):
 
 # get architecture
 arch = None
-if args.arch_module == 'gen_exp':
+if args.arch_module == 'base':
+    from impl.arch.base import BaseArchFactory
+    arch = BaseArchFactory()
+elif args.arch_module == 'gen_exp':
     from impl.arch.gen_exp import GenExpArchFactory
     arch = GenExpArchFactory()
 else:
