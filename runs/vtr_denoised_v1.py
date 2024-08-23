@@ -20,7 +20,8 @@ def run_vtr_denoised_v1(
         variable_arch_params: dict[str, list[any]],
         filter_params_baseline: list[str],
         new_arch: Type[ArchFactory] = GenExpParallelCCArchFactory,
-        filter_params_baseline_short_labels: dict[str, str] = {},
+        group_cols: list[str] = None,
+        group_cols_short_labels: dict[str, str] = {},
         filter_results: list[str] = ['fmax', 'cpd', 'rcw', 'clb', 'fle', 'area_total', 'area_total_used'],
         seeds: tuple[int, int, int] = (1239, 5741, 1473),
         merge_designs: bool = False,
@@ -28,9 +29,9 @@ def run_vtr_denoised_v1(
     ) -> None:
     """
     Runs the following sequence:
-    1. Runs all provided designs on v0 and v1 architecture on provided seeds.
+    1. Runs all provided designs on v0 and new_arch on provided seeds.
     2. Averages results across all seeds for each architecture.
-    3. Normalize v0 results as 1.0, and v1 results relative to v0. (Baseline normalization)
+    3. Normalize v0 results as 1.0, and v1 results relative to new_arch. (Baseline normalization)
     4. Plots normalized results, and saves both baseline and normalized results to the default results folder, under the latest timestamp.
 
     Required arguments:
@@ -40,7 +41,8 @@ def run_vtr_denoised_v1(
     
     Optional arguments:
     * new_arch:class<ArchFactory>, ArchFactory class to be used as 'new' architecture. Default: impl.arch.gen_exp.GenExpArchFactory  
-    * filter_params_baseline_short_labels:dict[str, str], short translations for parameter keys (e.g., 'sparsity': 's').
+    * group_cols: list[str], list of columns that should be used to group lines together. If None, then 'filter_params_baseline' is used. Default: None
+    * group_cols_short_labels:dict[str, str], short translations for parameter keys (e.g., 'sparsity': 's').
     * filter_results:list[str], list of parameters to extract from VPR. All will be baseline normalized and plotted.
     * seeds: (int, int, int), a tuple of 3 seeds to use for averaging.
     * merge_designs:bool, will take the geometric mean of all designs as the final result if True, else each design is saved as its own separate experiment. Default: False
@@ -165,10 +167,12 @@ def run_vtr_denoised_v1(
             df.to_csv(path.join(dir, f"{exp_dir.replace(path.sep, '_')}_baseline_results.csv"))
 
     # define plot function
+    if group_cols is None:
+        group_cols = filter_params_baseline
     def plot_fn(save_dir: str, filesafe_name: str, df: pd.DataFrame) -> None:
-        plot_xy(df, filter_params_baseline, filter_params_new, filter_results, 
+        plot_xy(df, group_cols, filter_params_new, filter_results, 
                 save_path=path.join(save_dir, f"{filesafe_name}_graphs.png"),
-                short_labels=filter_params_baseline_short_labels)
+                short_labels=group_cols_short_labels)
     
     # save into results directory
     save_and_plot(norm_results, do_with_dir_fn=do_with_dir_fn, plot_fn=plot_fn)

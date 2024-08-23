@@ -61,7 +61,7 @@ run_vtr_denoised_v1(
     design_list=DESIGN_LIST,
     variable_arch_params=VARIABLE_ARCH_PARAMS,
     filter_params_baseline=['sparsity'],
-    filter_params_baseline_short_labels=dict(sparsity='s'),
+    group_cols_short_labels=dict(sparsity='s'),
     filter_results=['fmax', 'cpd', 'rcw', 'clb', 'fle', 'area_total', 'area_total_used', 'adder'],
     num_parallel_tasks=16,
     # verbose=True,
