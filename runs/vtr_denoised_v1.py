@@ -1,8 +1,9 @@
 import structure.consts.keys as keys
 from impl.arch.base import BaseArchFactory
-from impl.arch.gen_exp import GenExpArchFactory
+from impl.arch.gen_exp_parallel_carry import GenExpParallelCCArchFactory
 from impl.exp.vtr import VtrExperiment
 from structure.run import Runner
+from structure.arch import ArchFactory
 from structure.design import Design
 from util.calc import merge_op
 from util.results import save_and_plot
@@ -18,8 +19,9 @@ def run_vtr_denoised_v1(
         design_list: list[tuple[Type[Design], dict[str, any]]],
         variable_arch_params: dict[str, list[any]],
         filter_params_baseline: list[str],
+        new_arch: Type[ArchFactory] = GenExpParallelCCArchFactory,
         filter_params_baseline_short_labels: dict[str, str] = {},
-        filter_results: list[str] = ['fmax', 'cpd', 'rcw', 'blocks', 'clb', 'fle', 'adder', 'mult_36'],
+        filter_results: list[str] = ['fmax', 'cpd', 'rcw', 'clb', 'fle', 'area_total', 'area_total_used'],
         seeds: tuple[int, int, int] = (1239, 5741, 1473),
         merge_designs: bool = False,
         **kwargs
@@ -37,6 +39,7 @@ def run_vtr_denoised_v1(
     * filter_params_baseline:[str, ...], parameters (non-architecture) that are varied and should be extracted into a DataFrame (e.g., sparsity, data width).
     
     Optional arguments:
+    * new_arch:class<ArchFactory>, ArchFactory class to be used as 'new' architecture. Default: impl.arch.gen_exp.GenExpArchFactory  
     * filter_params_baseline_short_labels:dict[str, str], short translations for parameter keys (e.g., 'sparsity': 's').
     * filter_results:list[str], list of parameters to extract from VPR. All will be baseline normalized and plotted.
     * seeds: (int, int, int), a tuple of 3 seeds to use for averaging.
@@ -64,7 +67,7 @@ def run_vtr_denoised_v1(
 
     exp_types = {
         'baseline': BaseArchFactory(),
-        'new': GenExpArchFactory()
+        'new': new_arch(),
     }
     exp_results = {
         'baseline': {},
@@ -99,9 +102,11 @@ def run_vtr_denoised_v1(
         true_exp_dir = sep.join(exp_dir_split[:-1])
         exp_type, seed = exp_dir_split[-1].split('-')
 
-        # add approximate CLB area and ADP
-        df['clb_area'] = df['clb'] * (10 if exp_type == 'baseline' else df['ble_count'])
-        df['adp'] = df['clb_area'] * df['cpd']
+        df['adp'] = df['area_total'] * df['cpd']
+        df['adp_used'] = df['area_total_used'] * df['cpd']
+
+        # Add average utilization per CLB
+        df['clb_avg_util'] = df['fle'] / df['clb'] / (10 if exp_type == 'baseline' else df['ble_count'])
 
         # concatenate DataFrames (and take mean if complete)
         df_dict = exp_results[exp_type]
@@ -111,8 +116,9 @@ def run_vtr_denoised_v1(
             df_dict[true_exp_dir] = pd.concat([df_dict[true_exp_dir], df], ignore_index=True)
     
     # add post-processing keys
-    filter_results.append('clb_area') # approximate CLB area
-    filter_results.append('adp')      # approximate ADP
+    filter_results.append('adp')            # ADP, total area
+    filter_results.append('adp_used')       # ADP, used area
+    filter_results.append('clb_avg_util')   # average utilization of CLB
 
     # take means of each DataFrame
     for exp_type, dfs in exp_results.items():

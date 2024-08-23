@@ -62,5 +62,8 @@ run_vtr_denoised_v1(
     variable_arch_params=VARIABLE_ARCH_PARAMS,
     filter_params_baseline=['sparsity'],
     filter_params_baseline_short_labels=dict(sparsity='s'),
-    num_parallel_tasks=4,
+    filter_results=['fmax', 'cpd', 'rcw', 'clb', 'fle', 'area_total', 'area_total_used', 'adder'],
+    num_parallel_tasks=16,
+    # verbose=True,
+    # merge_designs=True
 )
