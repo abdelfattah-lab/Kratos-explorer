@@ -21,8 +21,9 @@ class VtrExperiment(Experiment):
         ending: ending stage of VTR, if None, run the whole flow, options: 'parmys', 'vpr'
         seed: random seed for VTR
         allow_skipping: if True, then the experiment is skipped if the folder already exists with valid results
-        avoid_mult: if True, then avoids using hard multipliers
-        force_denser_packing: if True, then force VPR to pack as tightly as possible
+        adder_cin_global: tells VTR to connect the first cin of an adder/subtractor chain to (True) global GND/Vdd, or (False) a dummy adder. Default: False
+        avoid_mult: if True, then avoids using hard multipliers. Default: False
+        force_denser_packing: if True, then force VPR to pack as tightly as possible. Default: False
         """
         self._prerun_check()
         
@@ -41,6 +42,7 @@ class VtrExperiment(Experiment):
         clean = self.exp_params.get('clean', True)
         ending = self.exp_params['ending']
         seed = self.exp_params['seed']
+        adder_cin_global = self.exp_params.get('adder_cin_global', False)
         avoid_mult = self.exp_params.get('avoid_mult', False)
         force_denser_packing = self.exp_params.get('force_denser_packing', False)
 
@@ -69,6 +71,8 @@ class VtrExperiment(Experiment):
         vtr_script_path = os.path.join(vtr_root, 'vtr_flow/scripts/run_vtr_flow.py')
         cmd = ['python', vtr_script_path, wrapper_file_name, arch_file_name,
                '-parser', 'system-verilog', '-top', self.design.wrapper_module_name, '-search', self.verilog_search_dir, '--seed', str(seed)]
+        if adder_cin_global:
+            cmd += ['-adder_cin_global'] # only works with self-modified fork: https://github.com/abdelfattah-lab/vtr-updated
         if avoid_mult:
             cmd += ['-min_hard_mult_size', '9999'] # arbitrarily large multiplier size
         if ending is not None:
