@@ -375,7 +375,7 @@ TEMPLATE = '''<!-- Comments are removed to save file size -->
                     <delay_constant max="0.3e-9" in_port="adder.cin" out_port="adder.sumout"/>
                     <delay_constant max="0.3e-9" in_port="adder.a" out_port="adder.cout"/>
                     <delay_constant max="0.3e-9" in_port="adder.b" out_port="adder.cout"/>
-                    <delay_constant max="0.01e-9" in_port="adder.cin" out_port="adder.cout"/>
+                    <delay_constant max="0.018e-9" in_port="adder.cin" out_port="adder.cout"/>
                   </pb_type>
                   <pb_type name="ff" blif_model=".latch" num_pb="1" class="flipflop">
                     <input name="D" num_pins="1" port_class="D"/>
@@ -560,8 +560,6 @@ TEMPLATE = '''<!-- Comments are removed to save file size -->
         <direct name="clbouts2" input="fle[{fle_last_index}:0].out[1:1]" output="clb.O[{clb_out_range_2}]"/>
         <!-- Carry chain links -->
         <direct name="carry_in" input="clb.cin" output="fle[0:0].cin">
-          <!-- Put all inter-block carry chain delay on this one edge -->
-          <delay_constant max="0.16e-9" in_port="clb.cin" out_port="fle[0:0].cin"/>
           <pack_pattern name="chain" in_port="clb.cin" out_port="fle[0:0].cin"/>
         </direct>
         <direct name="carry_out" input="fle[{fle_last_index}:{fle_last_index}].cout" output="clb.cout">
