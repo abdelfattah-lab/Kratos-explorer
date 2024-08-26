@@ -83,7 +83,12 @@ class ArchFactory(DynamicallyNamed):
         query_str = ' & '.join(query_str_segments)
         
         # Make query
-        result = archive.query(query_str)
+        result = None
+        try:
+            result = archive.query(query_str)
+        except:
+            return defaults
+
         if result.empty:
             return defaults
         
