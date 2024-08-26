@@ -20,6 +20,7 @@ def run_vtr_denoised_v1(
         variable_arch_params: dict[str, list[any]],
         filter_params_baseline: list[str],
         new_arch: Type[ArchFactory] = GenExpParallelCCArchFactory,
+        x_axis: list[str] = None,
         group_cols: list[str] = None,
         group_cols_short_labels: dict[str, str] = {},
         filter_results: list[str] = ['fmax', 'cpd', 'rcw', 'clb', 'fle', 'area_total', 'area_total_used'],
@@ -41,6 +42,7 @@ def run_vtr_denoised_v1(
     
     Optional arguments:
     * new_arch:class<ArchFactory>, ArchFactory class to be used as 'new' architecture. Default: impl.arch.gen_exp.GenExpArchFactory  
+    * x_axis: list[str], list of columns (1 or 2) that should be used as the graph's x-axis. Should be a subset of the keys of variable_arch_params. If None, then all keys of variable_arch_params is used. Default: None
     * group_cols: list[str], list of columns that should be used to group lines together. If None, then 'filter_params_baseline' is used. Default: None
     * group_cols_short_labels:dict[str, str], short translations for parameter keys (e.g., 'sparsity': 's').
     * filter_results:list[str], list of parameters to extract from VPR. All will be baseline normalized and plotted.
@@ -48,17 +50,19 @@ def run_vtr_denoised_v1(
     * merge_designs:bool, will take the geometric mean of all designs as the final result if True, else each design is saved as its own separate experiment. Default: False
     """
     # x-axis is derived from variable architecture parameters
-    filter_params_new = list(variable_arch_params.keys())
+    filter_params_new = list(variable_arch_params.keys()) 
+    if x_axis is None:
+        x_axis = filter_params_new
     
     # Sanity checks
-    if len(filter_params_new) < 1 or len(filter_params_new) > 2:
-        raise ValueError("filter_params_new must be of length of either 1 or 2!")
+    if len(x_axis) < 1 or len(x_axis) > 2:
+        raise ValueError("x_axis must be of length of either 1 or 2!")
 
     # Ensure parameters for post-processing are present
     if 'ble_count' not in variable_arch_params.keys():
         raise ValueError("This sequence requires the architecture to have 'ble_count' as a variable!")
-    if 'ble_count' not in filter_params_new:
-        filter_params_new.append('ble_count')
+    if 'ble_count' not in x_axis:
+        x_axis.append('ble_count')
     if 'cpd' not in filter_results:
         filter_results.append('cpd')
     if 'clb' not in filter_results:
@@ -170,7 +174,7 @@ def run_vtr_denoised_v1(
     if group_cols is None:
         group_cols = filter_params_baseline
     def plot_fn(save_dir: str, filesafe_name: str, df: pd.DataFrame) -> None:
-        plot_xy(df, group_cols, filter_params_new, filter_results, 
+        plot_xy(df, group_cols, x_axis, filter_results, 
                 save_path=path.join(save_dir, f"{filesafe_name}_graphs.png"),
                 short_labels=group_cols_short_labels)
     
