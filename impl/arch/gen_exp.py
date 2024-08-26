@@ -377,7 +377,7 @@ TEMPLATE = '''<!-- Comments are removed to save file size -->
                     <delay_constant max="0.3e-9" in_port="adder.cin" out_port="adder.sumout"/>
                     <delay_constant max="0.3e-9" in_port="adder.a" out_port="adder.cout"/>
                     <delay_constant max="0.3e-9" in_port="adder.b" out_port="adder.cout"/>
-                    <delay_constant max="0.01e-9" in_port="adder.cin" out_port="adder.cout"/>
+                    <delay_constant max="0.018e-9" in_port="adder.cin" out_port="adder.cout"/>
                   </pb_type>
                   <pb_type name="ff" blif_model=".latch" num_pb="1" class="flipflop">
                     <input name="D" num_pins="1" port_class="D"/>
