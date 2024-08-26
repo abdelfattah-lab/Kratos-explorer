@@ -1327,12 +1327,16 @@ def get_pin_counts(ble_count: int, CLB_groups_per_xb: int, lut_size: int) -> dic
 
     return ret
 
-def gen_carry_chain_links(ble_count):
+def gen_carry_chain_links(ble_count, mux_sep=1):
     # mux inputs from FLE 2 - N
     mux_ins = ''
     if ble_count > 1:
-       mux_ins = '\n'.join(f"""<mux name="cin{x}" input="clb.cin fle[{x-1}:{x-1}].cout" output="fle[{x}:{x}].cin"/>""" for x in range(1, ble_count))       
-    
+        mux_ins_strs = []
+        for x in range(1, ble_count):
+          is_mux = x % mux_sep == 0
+          mux_ins_strs.append(f"""<{'mux' if is_mux else 'direct'} name="cin{x}" input="{'clb.cin ' if is_mux else ''}fle[{x-1}:{x-1}].cout" output="fle[{x}:{x}].cin"/>""")
+          mux_ins = '\n'.join(mux_ins_strs)
+
     return f"""
 <direct name="cin0" input="clb.cin" output="fle[0:0].cin">
     <pack_pattern name="chain" in_port="clb.cin[0:0]" out_port="fle[0:0].cin"/>
@@ -1411,6 +1415,7 @@ def gen_xbars(coffe_dict, ble_count, num_pins_ble, num_feedback_ble, clb_input_g
 """
 configurable parameters, all integer
 *CLB_groups_per_xb = 2
+*cin_mux_sep = 1
 *lut_size = 6
 - lut_size_small = lut_size - 1
 - lut_size_large = lut_size
@@ -1418,7 +1423,7 @@ configurable parameters, all integer
 
 # create xml parameters
 """
-def get_config_dict(coffe_dict: dict[str, any], ble_count: int, CLB_groups_per_xb: int, lut_size: int) -> dict[str, any]:
+def get_config_dict(coffe_dict: dict[str, any], ble_count: int, CLB_groups_per_xb: int, cin_mux_sep: int, lut_size: int) -> dict[str, any]:
     config_dict = {}
     pin_dict = get_pin_counts(ble_count, CLB_groups_per_xb, lut_size)
 
@@ -1466,13 +1471,14 @@ def get_config_dict(coffe_dict: dict[str, any], ble_count: int, CLB_groups_per_x
     # carry chain links
     config_dict['num_pins_cin'] = 1
     config_dict['num_pins_cout'] = 1 
-    config_dict['carry_chain_links'] = gen_carry_chain_links(ble_count)
+    config_dict['carry_chain_links'] = gen_carry_chain_links(ble_count, mux_sep=cin_mux_sep)
     return config_dict | coffe_dict
 
 # Specify the parameters and their default values for this architecture here.
 DEFAULTS = {
     'ble_count': 10,
     'CLB_groups_per_xb': 2,
+    'cin_mux_sep': 1,
     'lut_size': 6
 }
 
@@ -1484,10 +1490,10 @@ class GenExpParallelCCArchFactory(ArchFactory, ParamsChecker):
     def verify_params(self, params: dict[str, any]) -> dict[str, any]:
       return self.autofill_defaults(DEFAULTS, params)
     
-    def get_name(self, ble_count: int, CLB_groups_per_xb: int, lut_size: int, **kwargs) -> str:
-      return f"N.{ble_count}_K.{lut_size}_xb.{CLB_groups_per_xb}"
+    def get_name(self, ble_count: int, CLB_groups_per_xb: int, cin_mux_sep: int, lut_size: int, **kwargs) -> str:
+      return f"N.{ble_count}_K.{lut_size}_cin.{cin_mux_sep}_xb.{CLB_groups_per_xb}"
 
-    def get_arch(self, ble_count: int, CLB_groups_per_xb: int, lut_size: int, **kwargs) -> str:
+    def get_arch(self, ble_count: int, CLB_groups_per_xb: int, cin_mux_sep:int, lut_size: int, **kwargs) -> str:
       """
       Concrete implementation of ArchFactory for Baseline FPGA.
       Required arguments as per DEFAULTS.
@@ -1514,7 +1520,7 @@ class GenExpParallelCCArchFactory(ArchFactory, ParamsChecker):
          )
       )
 
-      return TEMPLATE.format(**get_config_dict(coffe_dict, ble_count, CLB_groups_per_xb, lut_size))
+      return TEMPLATE.format(**get_config_dict(coffe_dict, ble_count, CLB_groups_per_xb, cin_mux_sep, lut_size))
     
     def get_coffe_input_dict(self, ble_count: int, CLB_groups_per_xb: int, lut_size: int, **kwargs) -> dict:
         pin_dict = get_pin_counts(ble_count, CLB_groups_per_xb, lut_size)
