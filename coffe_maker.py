@@ -12,10 +12,11 @@ import argparse
 import os
 import itertools
 import pandas as pd
+import numpy as np
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-m', '--arch_module', help="ArchFactory module to use. Currently supported: base, gen_exp", default='gen_exp')
-parser.add_argument('-p', '--params_file', help="file containing newline separated parameters, intended for the ArchFactory. Each line should have <param>=<value_1>,<value_2>,... e.g., lut_size=3,4,5. You can also specify an integer range, e.g., lut_size=3-6,8")
+parser.add_argument('-p', '--params_file', help="file containing newline separated parameters, intended for the ArchFactory. Each line should have <param>=<value_1>,<value_2>,... e.g., lut_size=3,4,5. You can also specify a range with a step, e.g., lut_size=2-6:2,9 = 2,4,6,9; 0.1-0.4:0.15 = 0.1,0.25,0.4. Note that float ranges will be rounded to 2 d.p.")
 parser.add_argument('-o', '--output_dir', help="output directory to put new files in; created for you; defaults to 'coffe_maker_out'.", default='coffe_maker_out')
 parser.add_argument('-r', '--record_filename', help=".csv record file name; defaults to 'record'.", default='record')
 args = parser.parse_args()
@@ -37,6 +38,15 @@ else:
     log_error(f"arch_module {args.arch_module} is not recognized.")
     exit()
 
+def get_num(x: str) -> int | float:
+    try:
+        return int(x)
+    except:
+        try:
+            return float(x)
+        except:
+            raise ValueError(f"Provided value {x} is neither an integer or a float.")
+
 # parse parameter file
 params_dict = {}
 with open(params_file_path, 'r') as pf:
@@ -57,14 +67,23 @@ with open(params_file_path, 'r') as pf:
             val = val.strip()
             if '-' in val:
                 # treat as range if possible
+                step = 1
+                if ':' in val:
+                    val, step_str = val.split(':') 
+                    step = get_num(step_str)
+
                 val_split = val.split('-')
                 if len(val_split) == 2:
-                    l, r = val_split
-                    try:
-                        [params_dict[param].append(x) for x in range(int(l), int(r) + 1)]
-                        continue
-                    except:
-                        pass
+                    l, r = get_num(val_split[0]), get_num(val_split[1])
+                    
+                    iterator = None
+                    end = r + step
+                    if isinstance(l, int) and isinstance(r, int) and isinstance(step, int):
+                        iterator = range(l, end, step)
+                    else:
+                        iterator = [round(float(x), 2) for x in np.arange(l, end, step)]
+                    [params_dict[param].append(x) for x in iterator]
+                    continue
             try:
                 # integer pass
                 val = int(val)
