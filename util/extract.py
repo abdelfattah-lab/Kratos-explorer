@@ -60,7 +60,8 @@ def extract_info_vtr(path='.', extract_blocks_list=['clb', 'fle']) -> dict:
     * fmax: max frequency, MHz
     * cpd: critical path delay, ns
     * rcw: route channel width
-    * area_le: used area of logic only, in MWTAs
+    * area_le: area of logic tiles, in MWTAs
+    * area_le_used: used area of logic only, in MWTAs
     * area_r: used area of routing, in MWTAs
     * foutm: max fanout
     * fouta: average fanout
@@ -73,10 +74,18 @@ def extract_info_vtr(path='.', extract_blocks_list=['clb', 'fle']) -> dict:
     * lelr: LEs used for logic and registers
     * lelo: LEs used for logic only
     * lero: LEs used for registers only
+    * nets_total: total logical nets
+    * nets_absorbed:  absorbed logical nets during clustering
     * <keys specified in extract_blocks_list>: these will extract counts of specific PB types, e.g., CLBs, FLEs.
 
     Derived:
     * wlpg: wire length per grid
+    * area_total: total area of logic tiles and routing, in MWTAs
+    * area_total_used: total area used, in MWTAs
+    * lelr_frac: lelr / tle
+    * lelo_frac: lelo / tle
+    * lero_frac: lero / tle
+    * nets_absorbed_frac: nets_absorbed / nets_total
     """
     # if extract list is not a list, then we convert it to a list
     if not isinstance(extract_blocks_list, list):
@@ -84,26 +93,29 @@ def extract_info_vtr(path='.', extract_blocks_list=['clb', 'fle']) -> dict:
 
     result_dict = {}
     result_dict['status'] = False
-    result_dict['fmax'] = -1.0              # max frequency, MHz
-    result_dict['cpd'] = -1.0               # critical path delay, ns
-    result_dict['rcw'] = 999999             # route channel width
-    result_dict['area_le'] = -1.0           # area of logic tiles, in MWTAs
-    result_dict['area_le_used'] = -1.0      # used area of logic only, in MWTAs
-    result_dict['area_r'] = -1.0            # used area of routing, in MWTAs
-    result_dict['area_total'] = -1          # total area of logic tiles and routing, in MWTAs
-    result_dict['area_total_used'] = -1     # total area used, in MWTAs
-    result_dict['foutm'] = 0                # max fanout
-    result_dict['fouta'] = 0                # average fanout
-    result_dict['gridx'] = 0                # number of grid on x
-    result_dict['gridy'] = 0                # number of grid on y
-    result_dict['gridtotal'] = 0            # total number of grid
-    result_dict['twl'] = 0                  # total wire length
-    result_dict['wlpg'] = 0                 # wire length per grid
-    result_dict['blocks'] = 0               # total number of blocks, aka primitive cells
-    result_dict['tle'] = 0                  # Total number of Logic Elements used
-    result_dict['lelr'] = 0                 # LEs used for logic and registers
-    result_dict['lelo'] = 0                 # LEs used for logic only
-    result_dict['lero'] = 0                 # LEs used for registers only
+    result_dict['fmax'] = -1.0                  # max frequency, MHz
+    result_dict['cpd'] = -1.0                   # critical path delay, ns
+    result_dict['rcw'] = 999999                 # route channel width
+    result_dict['area_le'] = -1.0               # area of logic tiles, in MWTAs
+    result_dict['area_le_used'] = -1.0          # used area of logic only, in MWTAs
+    result_dict['area_r'] = -1.0                # used area of routing, in MWTAs
+    result_dict['area_total'] = -1              # total area of logic tiles and routing, in MWTAs
+    result_dict['area_total_used'] = -1         # total area used, in MWTAs
+    result_dict['foutm'] = 0                    # max fanout
+    result_dict['fouta'] = 0                    # average fanout
+    result_dict['gridx'] = 0                    # number of grid on x
+    result_dict['gridy'] = 0                    # number of grid on y
+    result_dict['gridtotal'] = 0                # total number of grid
+    result_dict['twl'] = 0                      # total wire length
+    result_dict['wlpg'] = 0                     # wire length per grid
+    result_dict['blocks'] = 0                   # total number of blocks, aka primitive cells
+    result_dict['tle'] = 0                      # Total number of Logic Elements used
+    result_dict['lelr'] = 0                     # LEs used for logic and registers
+    result_dict['lelo'] = 0                     # LEs used for logic only
+    result_dict['lero'] = 0                     # LEs used for registers only
+    result_dict['nets_total'] = 0               # Total logical nets
+    result_dict['nets_absorbed'] = 0            # Absorbed logical nets during clustering
+    result_dict['nets_absorbed_frac'] = -1.0    # nets_absorbed / nets_total
 
     # fill default values with -1
     for c in extract_blocks_list:
@@ -129,11 +141,14 @@ def extract_info_vtr(path='.', extract_blocks_list=['clb', 'fle']) -> dict:
                     break
                 key, val = [x.strip() for x in line.split(':')[:2]]
                 if key in extract_blocks_list:
-                    int_val = val
                     try:
                         int_val = int(val)
-                    finally:
-                        result_dict[key] = int_val
+                        if result_dict[key] < 0:
+                            result_dict[key] = int_val
+                        else:
+                            result_dict[key] += int_val
+                    except:
+                        result_dict[key] = val
             
         # extract flow status
         if line.startswith('VPR succeeded'):
@@ -165,7 +180,7 @@ def extract_info_vtr(path='.', extract_blocks_list=['clb', 'fle']) -> dict:
             result_dict['area_le_used'] = float(line.split(':')[-1].strip())
         if line.lstrip().startswith('Total routing area'):
             # Routing area
-            result_dict['area_r'] = float(line.split(':')[-1].strip())
+            result_dict['area_r'] = float(line.split(',')[0].split(':')[-1].strip())
         
         # extract fanout
         if line.startswith('Max Fanout'):
@@ -220,6 +235,12 @@ def extract_info_vtr(path='.', extract_blocks_list=['clb', 'fle']) -> dict:
             parts = line.split()
             result_dict['lero'] = int(parts[-1])
 
+        # Nets
+        if line.startswith('Absorbed logical nets'):
+            abs_str, total_str = line.split(',')[0].strip('Absorbed logical nets ').split(' out of ')
+            result_dict['nets_total'] = int(total_str)
+            result_dict['nets_absorbed'] = int(abs_str)
+
     f.close()
 
     # calculate wire length per grid
@@ -231,4 +252,18 @@ def extract_info_vtr(path='.', extract_blocks_list=['clb', 'fle']) -> dict:
         result_dict['area_total'] = result_dict['area_le'] + result_dict['area_r']
         result_dict['area_total_used'] = result_dict['area_le_used'] + result_dict['area_r']
     
+    # Calculate LE ratios
+    if result_dict['tle'] > 0:
+        tle = result_dict['tle']
+        if result_dict['lelr'] > 0:
+            result_dict['lelr_frac'] = result_dict['lelr'] / tle
+        if result_dict['lelo'] > 0:
+            result_dict['lelo_frac'] = result_dict['lelo'] / tle
+        if result_dict['lero'] > 0:
+            result_dict['lero_frac'] = result_dict['lero'] / tle
+    
+    # Calculate net absorption ratio
+    if result_dict['nets_total'] > 0 and result_dict['nets_absorbed'] >= 0:
+        result_dict['nets_absorbed_frac'] = result_dict['nets_absorbed'] / result_dict['nets_total']
+
     return result_dict
