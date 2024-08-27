@@ -26,6 +26,8 @@ def run_vtr_denoised_v1(
         filter_results: list[str] = ['fmax', 'cpd', 'rcw', 'clb', 'fle', 'area_total', 'area_total_used'],
         seeds: tuple[int, int, int] = (1239, 5741, 1473),
         merge_designs: bool = False,
+        avoid_norm: list[str] = [],
+        translations: dict[str, str] = {},
         **kwargs
     ) -> None:
     """
@@ -48,6 +50,8 @@ def run_vtr_denoised_v1(
     * filter_results:list[str], list of parameters to extract from VPR. All will be baseline normalized and plotted.
     * seeds: (int, int, int), a tuple of 3 seeds to use for averaging.
     * merge_designs:bool, will take the geometric mean of all designs as the final result if True, else each design is saved as its own separate experiment. Default: False
+    * avoid_norm:list[str], list of columns that should not be normalized (i.e., the value stays absolute). Default: empty list
+    * translations:dict[str, str], dictionary mapping columns -> long names. If not present in the dictionary, then the column name is re-used. Default: empty dictionary
     """
     # x-axis is derived from variable architecture parameters
     filter_params_new = list(variable_arch_params.keys()) 
@@ -163,7 +167,7 @@ def run_vtr_denoised_v1(
     norm_results = exp_results['new']
     for key, df in norm_results.items():
         # perform merge and divide by baseline
-        norm_results[key] = merge_op(df, exp_results['baseline'][key], lambda a, b: a / b, filter_params_baseline)
+        norm_results[key] = merge_op(df, exp_results['baseline'][key], lambda a, b: a / b, filter_params_baseline, ignore=avoid_norm)
 
     # save baseline results
     def do_with_dir_fn(dir: str):
@@ -174,7 +178,9 @@ def run_vtr_denoised_v1(
     if group_cols is None:
         group_cols = filter_params_baseline
     def plot_fn(save_dir: str, filesafe_name: str, df: pd.DataFrame) -> None:
-        plot_xy(df, group_cols, x_axis, filter_results, 
+        plot_xy(df, group_cols, x_axis, filter_results,
+                x_axis_label=[translations.get(c, c) for c in x_axis],
+                y_axis_label=[translations.get(c, c) for c in filter_results],
                 save_path=path.join(save_dir, f"{filesafe_name}_graphs.png"),
                 short_labels=group_cols_short_labels)
     

@@ -44,7 +44,8 @@ def merge_op(
         parent: DataFrame, 
         child: DataFrame, 
         col_op: Callable[[Series, Series], Series],
-        merge_on: list[str]
+        merge_on: list[str],
+        ignore: list[str] = [],
     ) -> DataFrame:
     """
     Perform a merge on certain columns, then perform a specified operation on the remaining columns.
@@ -54,6 +55,9 @@ def merge_op(
     * child:DataFrame, child to be merged into parent.
     * col_op: (Series, Series) -> Series, operation to perform on remaining columns.
     * merge_on: columns on which to merge child into parent.
+
+    Optional arguments:
+    * ignore: columns on which no operation should be performed, i.e., the parent retains its value and the child is discarded. Default: empty list
     """
     # merge both dataframes together
     suffix = '_<m>'
@@ -64,6 +68,9 @@ def merge_op(
     suffixed_cols = []
     for col in rem_cols:
         suffixed_col = f"{col}{suffix}"
+        if col in ignore:
+            continue
+
         merged[col] = col_op(merged[col], merged[suffixed_col])
         suffixed_cols.append(suffixed_col)
 
