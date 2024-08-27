@@ -331,7 +331,10 @@ def plot_xy(
             # Normal group plot
             ax = fig.add_subplot(111)
             ax.set_xlabel(xlabel=x_axis_label)
-            ax.set_ylabel(ylabel=ylabel)
+            if is_y_axis_subplot:
+                ax.yaxis.get_label().set_visible(False)
+            else:
+                ax.set_ylabel(ylabel=ylabel)
             # ax.set_box_aspect(fig_w/fig_h)
             ax2 = None
             if y_axis_col_secondary is not None:
