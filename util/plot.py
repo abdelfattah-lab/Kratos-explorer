@@ -170,6 +170,14 @@ def plot_xy(
         
         return ",".join([f"{get_id(id)}={val}" for id, val in zip(identifiers, values)])
 
+    # Set up labels
+    if x_axis_label is None:
+        x_axis_label = x_axis_col
+    if y_axis_label is None:
+        y_axis_label = y_axis_col
+    if y_axis_col_secondary is not None and y_axis_label_secondary is None:
+        y_axis_label_secondary = y_axis_col_secondary
+
     # check for 3D
     is_3d = False
     if isinstance(x_axis_col, list):
@@ -181,16 +189,9 @@ def plot_xy(
         
         if x_axis_len == 1:
             x_axis_col = x_axis_col[0]
+            x_axis_label = x_axis_label[0]
         else:
             is_3d = True
-    
-    # Set up labels
-    if x_axis_label is None:
-        x_axis_label = x_axis_col
-    if y_axis_label is None:
-        y_axis_label = y_axis_col
-    if y_axis_col_secondary is not None and y_axis_label_secondary is None:
-        y_axis_label_secondary = y_axis_col_secondary
 
     # Set up figure and axes
     fig_w, fig_h = subplot_size_inches
@@ -330,17 +331,9 @@ def plot_xy(
         else:
             # Normal group plot
             ax = fig.add_subplot(111)
-            ax.set_xlabel(xlabel=x_axis_label)
-            if is_y_axis_subplot:
-                ax.yaxis.get_label().set_visible(False)
-            else:
-                ax.set_ylabel(ylabel=ylabel)
-            # ax.set_box_aspect(fig_w/fig_h)
             ax2 = None
             if y_axis_col_secondary is not None:
                 ax2 = ax.twinx()
-                ax2.set_ylabel(ylabel=y_axis_label_secondary)
-                # ax2.set_box_aspect(fig_w/fig_h)
 
             for grp in groups:
                 marker, color = attr_map[tuple(grp[col].unique()[0] for col in group_identifiers)]
@@ -351,6 +344,15 @@ def plot_xy(
                 if y_axis_col_secondary is not None:
                     grp.plot(x=x_axis_col, y=y_axis_col_secondary, kind='line', linestyle='dotted', marker=marker, color=color, ax=ax2)
             
+            # set labels
+            ax.set_xlabel(xlabel=x_axis_label)
+            if is_y_axis_subplot:
+                ax.yaxis.get_label().set_visible(False)
+            else:
+                ax.set_ylabel(ylabel=ylabel)
+            if ax2 is not None:
+                ax2.set_ylabel(ylabel=y_axis_label_secondary)
+
             remove_legend(ax)
             remove_legend(ax2)
 
