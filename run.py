@@ -62,7 +62,8 @@ run_vtr_denoised_v1(
     variable_arch_params=VARIABLE_ARCH_PARAMS,
     filter_params_baseline=['sparsity'],
     group_cols_short_labels=dict(sparsity='s'),
-    filter_results=['fmax', 'cpd', 'rcw', 'clb', 'fle', 'area_total', 'area_total_used', 'adder'],
+    filter_results=['fmax', 'cpd', 'rcw', 'area_total', 'area_total_used', 'lero', 'lelr_frac', 'lelo_frac', 'lero_frac', 'nets_absorbed_frac'],
+    filter_blocks=['clb', 'fle', 'flutS.ff', 'arithmetic.ff', 'ff'],
     num_parallel_tasks=16,
     # verbose=True,
     # merge_designs=True

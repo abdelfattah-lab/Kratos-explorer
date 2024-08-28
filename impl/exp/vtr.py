@@ -127,12 +127,12 @@ class VtrExperiment(Experiment):
         else:
             print(f"Unable to perform zipping for: {output_temp_dir}")
         
-    def get_result(self) -> dict:
+    def get_result(self, **kwargs) -> dict:
         """
         Get result of VTR run.
         """
         self._preresult_check()
 
-        self.result = extract_info_vtr(os.path.join(self.exp_dir, 'temp'), ['clb', 'fle', 'adder', 'mult_36'])
+        self.result = extract_info_vtr(os.path.join(self.exp_dir, 'temp'), **kwargs)
         return self.result
 

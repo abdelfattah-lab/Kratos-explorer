@@ -23,7 +23,8 @@ def run_vtr_denoised_v1(
         x_axis: list[str] = None,
         group_cols: list[str] = None,
         group_cols_short_labels: dict[str, str] = {},
-        filter_results: list[str] = ['fmax', 'cpd', 'rcw', 'clb', 'fle', 'area_total', 'area_total_used'],
+        filter_results: list[str] = ['fmax', 'cpd', 'rcw', 'area_total', 'area_total_used'],
+        filter_blocks: list[str] = ['clb', 'fle'],
         seeds: tuple[int, int, int] = (1239, 5741, 1473),
         merge_designs: bool = False,
         avoid_norm: list[str] = [],
@@ -47,7 +48,8 @@ def run_vtr_denoised_v1(
     * x_axis: list[str], list of columns (1 or 2) that should be used as the graph's x-axis. Should be a subset of the keys of variable_arch_params. If None, then all keys of variable_arch_params is used. Default: None
     * group_cols: list[str], list of columns that should be used to group lines together. If None, then 'filter_params_baseline' is used. Default: None
     * group_cols_short_labels:dict[str, str], short translations for parameter keys (e.g., 'sparsity': 's').
-    * filter_results:list[str], list of parameters to extract from VPR. All will be baseline normalized and plotted.
+    * filter_results:list[str], list of parameters to extract from VPR (excluding Pb types blocks; see extract_blocks). All will be baseline normalized (unless also in avoid_norm) and plotted.
+    * extract_blocks:list[str], list of Pb type blocks to extract from VPR. All will be baseline normalized (unless also in avoid_norm) and plotted.
     * seeds: (int, int, int), a tuple of 3 seeds to use for averaging.
     * merge_designs:bool, will take the geometric mean of all designs as the final result if True, else each design is saved as its own separate experiment. Default: False
     * avoid_norm:list[str], list of columns that should not be normalized (i.e., the value stays absolute). Default: empty list
@@ -69,8 +71,8 @@ def run_vtr_denoised_v1(
         x_axis.append('ble_count')
     if 'cpd' not in filter_results:
         filter_results.append('cpd')
-    if 'clb' not in filter_results:
-        filter_results.append('clb')
+    if 'clb' not in filter_blocks:
+        filter_blocks.append('clb')
 
     # Define variables
     runner = Runner()
@@ -99,10 +101,13 @@ def run_vtr_denoised_v1(
                 runner.add_experiments(VtrExperiment, arch, design, p)
 
     # run all experiments
+    filter_results += filter_blocks
     results = runner.run_all_threaded(
         filter_params=filter_params_baseline + filter_params_new,
         filter_results=filter_results,
-        **kwargs
+        result_kwargs=dict(
+            extract_blocks_list=filter_blocks
+        )
     )
 
     # process results
@@ -180,7 +185,7 @@ def run_vtr_denoised_v1(
     def plot_fn(save_dir: str, filesafe_name: str, df: pd.DataFrame) -> None:
         plot_xy(df, group_cols, x_axis, filter_results,
                 x_axis_label=[translations.get(c, c) for c in x_axis],
-                y_axis_label=[translations.get(c, c) for c in filter_results],
+                y_axis_label=[f"{'*' if c in avoid_norm else ''}{translations.get(c, c)}" for c in filter_results],
                 save_path=path.join(save_dir, f"{filesafe_name}_graphs.png"),
                 short_labels=group_cols_short_labels)
     

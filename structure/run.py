@@ -42,7 +42,8 @@ class Runner():
             runner_err_file: str = 'runner.err',
             results_status_key: str = 'status',
             filter_params: list[str] = None,
-            filter_results: list[str] = None
+            filter_results: list[str] = None,
+            result_kwargs: dict = {},
         ) -> dict[str, pd.DataFrame]:
         """
         Main function: run all generated experiments with a thread pool.
@@ -56,7 +57,7 @@ class Runner():
         * results_status_key:str, key in results dictionary from the Experiment that should yield a True/False value, indicating success/failure. Default: 'status'
         * filter_params:list[str], a list of parameter keys that should be extracted from the Experiment parameters and included in the resultant Dataframe. Pass None to include all. Default: None
         * filter_results:list[str], a list of result keys that should be extracted from the result and included in the resultant Dataframe. Pass None to include all. Default: None
-        
+        * result_kwargs:dict, kwargs to pass into each Experiment get_result() function. Default: empty, i.e., no kwargs. 
         @returns a dictionary of (experiment root directory): (Pandas DataFrame with filtered parameters and results).
         """
         # print experiment count.
@@ -76,7 +77,7 @@ class Runner():
 
             exp.run()
             exp.wait()
-            return exp.get_full_params(), exp.get_result()
+            return exp.get_full_params(), exp.get_result(**result_kwargs)
         
         # submit all Experiments into the ThreadPoolExecutor
         executor = ThreadPoolExecutor(max_workers=num_parallel_tasks)

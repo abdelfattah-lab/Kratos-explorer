@@ -152,7 +152,7 @@ class Experiment(ParamsChecker, Hashable):
         if (self.process is not None) and self.is_running():
             raise RuntimeError("Experiment is still running; unable to get result.")
         
-    def get_result(self) -> dict:
+    def get_result(self, **kwargs) -> dict:
         """
         {abstract}
         Get the result of the Experiment.

@@ -77,6 +77,18 @@ def extract_info_vtr(path='.', extract_blocks_list=['clb', 'fle']) -> dict:
     * nets_total: total logical nets
     * nets_absorbed:  absorbed logical nets during clustering
     * <keys specified in extract_blocks_list>: these will extract counts of specific PB types, e.g., CLBs, FLEs.
+    You can specify a hierarchy with '<level 1>.<level 2>':
+    - <level 2> does not need to be a direct child of <level 1>.
+    - ALL counts that match the hierarchy will be added to this key's count.
+    e.g.:
+    one 10
+        two_a 20
+            three 10
+                a 10
+                b 50
+        two_b 10
+            a 20
+    then 'one' = 10, 'three' = 10, 'one.a' = 30, 'two_a.b' = 50
 
     Derived:
     * wlpg: wire length per grid
@@ -90,7 +102,6 @@ def extract_info_vtr(path='.', extract_blocks_list=['clb', 'fle']) -> dict:
     # if extract list is not a list, then we convert it to a list
     if not isinstance(extract_blocks_list, list):
         extract_blocks_list = [extract_blocks_list]
-
     result_dict = {}
     result_dict['status'] = False
     result_dict['fmax'] = -1.0                  # max frequency, MHz
@@ -117,10 +128,6 @@ def extract_info_vtr(path='.', extract_blocks_list=['clb', 'fle']) -> dict:
     result_dict['nets_absorbed'] = 0            # Absorbed logical nets during clustering
     result_dict['nets_absorbed_frac'] = -1.0    # nets_absorbed / nets_total
 
-    # fill default values with -1
-    for c in extract_blocks_list:
-        result_dict[c] = -1.0
-
     # vpr output is not same as quartus, the status is at the end of the file, so we need to extract the block usage first and later extratc flow status
     vpr_out_path = os.path.join(path, 'vpr.out')
     # if not exit, then return
@@ -132,24 +139,61 @@ def extract_info_vtr(path='.', extract_blocks_list=['clb', 'fle']) -> dict:
         line = line.strip()
         # extract block usage
         if line.startswith('Pb types usage'):
-            # this indicates the start of synthesis resourse usage
+            # this indicates the start of synthesis resource usage
             # we read maximum 50 lines or if a line is empty, then we stop
+
+            # store the usage metrics into a tree structure
+            def get_node(val):
+                return {
+                    'value': int(val),
+                    'children': {}
+                }
+            
+            tree = {}
+            last_space = 0
+            prev_key = None
+            keys = []
             for i in range(50):
-                line = f.readline().strip()
-                if line == '':
+                line = f.readline()
+                if line.strip() == '':
                     # reach the end of the block usage table
                     break
-                key, val = [x.strip() for x in line.split(':')[:2]]
-                if key in extract_blocks_list:
-                    try:
-                        int_val = int(val)
-                        if result_dict[key] < 0:
-                            result_dict[key] = int_val
-                        else:
-                            result_dict[key] += int_val
-                    except:
-                        result_dict[key] = val
             
+                key, val = [x.strip() for x in line.split(':')[:2]]
+                left_spaces = len(line) - len(line.lstrip(' '))
+                if left_spaces != last_space:
+                    if prev_key is not None:
+                        keys.append(prev_key) if left_spaces > last_space else keys.pop()
+                        
+                    last_space = left_spaces
+                    prev_key = key
+
+                node_dict = tree
+                for k in keys:
+                    node_dict = node_dict[k]['children']
+                
+                node_dict[key] = get_node(val)
+
+            def traverse_tree(head, sub_keys):
+                if len(head) == 0:
+                    return 0
+                
+                ret = 0
+                for k, v in head.items():
+                    if k == sub_keys[0]:
+                        if len(sub_keys) == 1:
+                            ret += v['value']
+                        else:
+                            ret += traverse_tree(v['children'], sub_keys[1:])
+                    else:
+                        ret += traverse_tree(v['children'], sub_keys[:])
+
+                return ret
+
+            for key in extract_blocks_list:
+                val = traverse_tree(tree, key.split('.'))
+                result_dict[key] = val if val > 0 else -1
+
         # extract flow status
         if line.startswith('VPR succeeded'):
             result_dict['status'] = True
