@@ -8,6 +8,7 @@ from structure.design import Design
 from util.calc import merge_op
 from util.results import save_and_plot
 from util.plot import plot_xy
+from util.search import query_df
 
 from typing import Type
 import os.path as path
@@ -20,6 +21,8 @@ def run_vtr_denoised_v1(
         variable_arch_params: dict[str, list[any]],
         filter_params_baseline: list[str],
         new_arch: Type[ArchFactory] = GenExpParallelCCArchFactory,
+        group_normalize_on: list[str] = None,
+        normalize_each_group_on: dict[str, any] = None,
         x_axis: list[str] = None,
         group_cols: list[str] = None,
         group_cols_short_labels: dict[str, str] = {},
@@ -35,7 +38,9 @@ def run_vtr_denoised_v1(
     Runs the following sequence:
     1. Runs all provided designs on v0 and new_arch on provided seeds.
     2. Averages results across all seeds for each architecture.
-    3. Normalize v0 results as 1.0, and v1 results relative to new_arch. (Baseline normalization)
+    3. Normalize results, depending on normalize_on: (Baseline normalization)
+    - If provided, then group DataFrame into rows based on each unique value of group_normalize_on, select the row within each group based on the columns and values provided in normalize_each_group_on, and use this row as the baseline for each group.
+    - If not provided, then use v0 as baseline.
     4. Plots normalized results, and saves both baseline and normalized results to the default results folder, under the latest timestamp.
 
     Required arguments:
@@ -45,6 +50,8 @@ def run_vtr_denoised_v1(
     
     Optional arguments:
     * new_arch:class<ArchFactory>, ArchFactory class to be used as 'new' architecture. Default: impl.arch.gen_exp.GenExpArchFactory  
+    * normalize_group_on: list[str], if provided, then perform group normalization as described in step 3. Provide an empty list to group the entire DataFrame as one group. Default: None
+    * normalize_each_group_on:dict[str, any], if provided, then use a row that is uniquely identified by each column: value pair, to use as the baseline for all others in the group. Must be provided if group_normalize_on is not None. Default: None
     * x_axis: list[str], list of columns (1 or 2) that should be used as the graph's x-axis. Should be a subset of the keys of variable_arch_params. If None, then all keys of variable_arch_params is used. Default: None
     * group_cols: list[str], list of columns that should be used to group lines together. If None, then 'filter_params_baseline' is used. Default: None
     * group_cols_short_labels:dict[str, str], short translations for parameter keys (e.g., 'sparsity': 's').
@@ -63,7 +70,9 @@ def run_vtr_denoised_v1(
     # Sanity checks
     if len(x_axis) < 1 or len(x_axis) > 2:
         raise ValueError("x_axis must be of length of either 1 or 2!")
-
+    if group_normalize_on is not None and normalize_each_group_on is None:
+        raise ValueError("normalize_each_group_on must be provided if group_normalize_on is provided!")
+    
     # Ensure parameters for post-processing are present
     if 'ble_count' not in variable_arch_params.keys():
         raise ValueError("This sequence requires the architecture to have 'ble_count' as a variable!")
@@ -73,6 +82,9 @@ def run_vtr_denoised_v1(
         filter_results.append('cpd')
     if 'clb' not in filter_blocks:
         filter_blocks.append('clb')
+
+    # Check if baseline is to be used
+    should_use_baseline = group_normalize_on is None
 
     # Define variables
     runner = Runner()
@@ -86,6 +98,11 @@ def run_vtr_denoised_v1(
         'new': {}
     }
 
+    if not should_use_baseline:
+        # skip baseline generation
+        del exp_types['baseline']
+        del exp_results['baseline']
+    
     # Setup Runner
     runner = Runner()
     
@@ -171,11 +188,33 @@ def run_vtr_denoised_v1(
     # baseline normalization and post-processing
     norm_results = exp_results['new']
     for key, df in norm_results.items():
-        # perform merge and divide by baseline
-        norm_results[key] = merge_op(df, exp_results['baseline'][key], lambda a, b: a / b, filter_params_baseline, ignore=avoid_norm)
+        if should_use_baseline:
+            # perform merge and divide by baseline
+            norm_results[key] = merge_op(df, exp_results['baseline'][key], lambda a, b: a / b, filter_params_baseline, ignore=avoid_norm)
+        else:
+            # normalize within DataFrame, in groups
+            def normalize_group(group):
+                # normalize within each group
+                baseline_query = query_df(group, normalize_each_group_on)
+                if baseline_query is None:
+                    raise ValueError(f"Could not find a row that matches these column: values; {normalize_each_group_on}")
+                if baseline_query.shape[0] > 1:
+                    raise ValueError(f"More than one row matches column: values - try being more specific; {normalize_each_group_on}")
+                
+                baseline_row = baseline_query.iloc[0]
+                norm_cols = list(set(filter_results) - set(avoid_norm))
+                group[norm_cols] = group[norm_cols].div(baseline_row[norm_cols], axis=1)
+
+                return group
+            
+            norm_results[key] = df.groupby(group_normalize_on, group_keys=False).apply(normalize_group)
 
     # save baseline results
     def do_with_dir_fn(dir: str):
+        if not should_use_baseline:
+            # skip baseline CSV generation
+            return
+        
         for exp_dir, df in exp_results['baseline'].items():
             df.to_csv(path.join(dir, f"{exp_dir.replace(path.sep, '_')}_baseline_results.csv"))
 

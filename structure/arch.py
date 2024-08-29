@@ -1,4 +1,5 @@
 from structure.util import DynamicallyNamed
+from util.search import query_df
 
 import sys, os
 import pandas as pd
@@ -74,22 +75,9 @@ class ArchFactory(DynamicallyNamed):
         # Read archive
         archive = pd.read_csv(archive_path)
 
-        # Generate query
-        query_str_segments = []
-        for col, val in search_kwargs.items():
-            if isinstance(val, str):
-                val = f'"{val}"'
-            query_str_segments.append(f'`{col}`=={val}')
-        query_str = ' & '.join(query_str_segments)
-        
         # Make query
-        result = None
-        try:
-            result = archive.query(query_str)
-        except:
-            return defaults
-
-        if result.empty:
+        result = query_df(archive, search_kwargs)
+        if result is None:
             return defaults
         
         # return merged result
