@@ -124,6 +124,9 @@ def extract_info_vtr(path='.', extract_blocks_list=['clb', 'fle']) -> dict:
     result_dict['lelr'] = 0                     # LEs used for logic and registers
     result_dict['lelo'] = 0                     # LEs used for logic only
     result_dict['lero'] = 0                     # LEs used for registers only
+    result_dict['lelr_frac'] = 0                # % of LEs used for logic and registers
+    result_dict['lelo_frac'] = 0                # % of LEs used for logic only
+    result_dict['lero_frac'] = 0                # % of LEs used for registers only
     result_dict['nets_total'] = 0               # Total logical nets
     result_dict['nets_absorbed'] = 0            # Absorbed logical nets during clustering
     result_dict['nets_absorbed_frac'] = -1.0    # nets_absorbed / nets_total
