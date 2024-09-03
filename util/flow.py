@@ -11,6 +11,8 @@ import random
 import subprocess, signal, ctypes
 from itertools import combinations
 from collections import Counter
+from math import ceil
+from random import shuffle
 
 random.seed(114514)
 
@@ -72,6 +74,9 @@ def reset_seed(n=114514):
     np.random.seed(n)
 
 def distribute_pins(total_pins, pins_per_group, group_num):
+    """
+    Distribute total_pins into group_num * pins_per_group evenly.
+    """
     all_combinations = None
     if pins_per_group >= 1:
         all_combinations = list(combinations(range(total_pins), pins_per_group))
@@ -116,6 +121,72 @@ def distribute_pins(total_pins, pins_per_group, group_num):
         all_combinations.remove(best_group)
 
     return final_groups
+
+def distribute_pin_edges(N: int, K: int, pop: float = 0.5) -> list[tuple[int, list[str]]]:
+    """
+    Assign edges between N pins and K pins such that:
+    - N is connected to ~pop% of K
+    - K is connected to ~pop% of K
+
+    @return a list of (total number of N pins connected, lists of range strings [n0:n1, n2:n3, ...]) in order of pin 0 -> K-1.
+    """
+    # calculate limits (less than or equal to)
+    N_lim = ceil(K * pop)
+    K_lim = ceil(N * pop)
+
+    N_counts = [ 0 for n in range(N) ]
+    K_rem = []
+    K_used = []
+    for k in range(K):
+        N_list = list(range(N))
+        shuffle(N_list)
+        K_rem.append(N_list)
+        K_used.append([])
+    
+    # assign N nodes to K nodes K_lim times
+    for _ in range(K_lim):
+        for k in range(K):
+            N_list = sorted(K_rem[k], key=lambda n: N_counts[n], reverse=True)
+            while len(N_list) > 0:
+                n = N_list.pop()
+                if N_counts[n] >= N_lim:
+                    continue
+
+                K_used[k].append(n)
+                N_counts[n] += 1
+                K_rem[k] = N_list
+                break
+
+    # convert to ranges
+    ret = []
+    for k, lst in enumerate(K_used):
+        ret.append((len(lst), list_to_ranges(lst)))
+
+    return ret
+
+def list_to_ranges(lst: list[int]) -> list[str]:
+    """
+    convert a given list into VTR range strings:
+    start:end start:end ...
+    """
+    lst = sorted(lst)
+    range_list = []
+
+    start, prev = None, None
+    for n in lst:
+        if start is None:
+            start = n
+            prev = n
+            continue
+
+        if n - prev > 1:
+            range_list.append(f"{start}:{prev}")
+            start = n
+        
+        prev = n
+    
+    range_list.append(f"{start}:{prev}")
+    return range_list
 
 def generate_specific_array(length, data_width, value):
     params = np.zeros((length), dtype=int)

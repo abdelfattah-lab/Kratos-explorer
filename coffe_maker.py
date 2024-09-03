@@ -34,6 +34,9 @@ if args.arch_module == 'base':
 elif args.arch_module == 'gen_exp':
     from impl.arch.gen_exp import GenExpArchFactory
     arch = GenExpArchFactory()
+elif args.arch_module == 'gen_exp_fpop':
+    from impl.arch.gen_exp_fpop import GenExpFpopArchFactory
+    arch = GenExpFpopArchFactory()
 else:
     log_error(f"arch_module {args.arch_module} is not recognized.")
     exit()
@@ -107,7 +110,7 @@ permutations = [dict(zip(keys, combination)) for combination in itertools.produc
 # make directory and write
 os.makedirs(args.output_dir, exist_ok=True)
 
-# c
+# convert columns to record format
 def convert_to_record(params):
     params = arch.verify_params(params)
     coffe_dict = arch.get_coffe_input_dict(**params)
