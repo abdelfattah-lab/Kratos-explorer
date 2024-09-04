@@ -3,7 +3,8 @@
 
 
 `include "tree_mac/multiply_core_evo.v"
-module conv_reg_1d_full
+
+module conv_reg_1d_parallel_ternary
 #(
     parameter DATA_WIDTH = 8,
     parameter IMG_W = 32,
@@ -54,7 +55,7 @@ module conv_reg_1d_full
                     end
                 end
                 
-                multiply_core_evo #(DATA_WIDTH, mul_length) mulcore_inst
+                multiply_core_evo_ternary #(DATA_WIDTH, mul_length) mulcore_inst
                 (
                     .clk(clk),
                     .reset(reset),
@@ -67,7 +68,7 @@ module conv_reg_1d_full
     endgenerate
     
     // use one multiply core for transfering opqaue field
-    multiply_core_evo_chain #(8, mul_length) opqaue_cycle_match
+    multiply_core_evo_chain_base #(8, mul_length, 3) opqaue_cycle_match
     (
         .clk(clk),
         .reset(reset),

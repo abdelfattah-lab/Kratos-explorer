@@ -3,12 +3,12 @@ from util.flow import reset_seed, generate_flattened_bit
 from structure.consts.shared_defaults import DEFAULTS_TCL, DEFAULTS_WRAPPER
 from structure.consts.shared_requirements import REQUIRED_KEYS_GEMM
 
-class GemmTFuTernaryDesign(StandardizedSdcDesign):
+class GemmTRpTernaryDesign(StandardizedSdcDesign):
     """
-    GEMMT Fully Unrolled design, using ternary adder tree.
+    GEMMT Row-Parallel design.
     """
 
-    def __init__(self, impl: str = 'mm_reg_full_ternary', module_dir: str = 'gemmt', wrapper_module_name: str = 'mm_reg_full_ternary_wrapper'):
+    def __init__(self, impl: str = 'mm_bram_parallel_ternary', module_dir: str = 'gemmt', wrapper_module_name: str = 'mm_bram_parallel_ternary_wrapper'):
         super().__init__(impl, module_dir, wrapper_module_name)
 
     def get_name(self, data_width: int, row_num: int, col_num: int, length: int, constant_weight: bool = True, sparsity: float = 0.0, **kwargs):
@@ -19,7 +19,7 @@ class GemmTFuTernaryDesign(StandardizedSdcDesign):
 
     def verify_params(self, params: dict[str, any]) -> dict[str, any]:
         """
-        Verification of parameters for GEMMT Fully Unrolled.
+        Verification of parameters for GEMMT Row-Parallel.
         """
         return self.verify_required_keys(DEFAULTS_WRAPPER, REQUIRED_KEYS_GEMM, params)
 
@@ -42,7 +42,7 @@ class GemmTFuTernaryDesign(StandardizedSdcDesign):
 load_package flow
 
 # new project
-project_new -revision v1 -overwrite unrolled_mm_reg_full_ternary
+project_new -revision v1 -overwrite unrolled_mm_bram_parallel_ternary
 
 # device
 set_global_assignment -name FAMILY "Arria 10"

@@ -3,12 +3,12 @@ from util.flow import reset_seed, gen_long_constant_bits
 from structure.consts.shared_defaults import DEFAULTS_TCL, DEFAULTS_WRAPPER_CONV
 from structure.consts.shared_requirements import REQUIRED_KEYS_CONV2D_STRIDE
 
-class Conv2dPwDesign(StandardizedSdcDesign):
+class Conv2dPwTernaryDesign(StandardizedSdcDesign):
     """
     Conv-2D Pixel-wise design.
     """
     
-    def __init__(self, impl: str = 'conv_bram_sr_fast', module_dir: str = 'conv_2d', wrapper_module_name: str = 'conv_bram_sr_fast_wrapper'):
+    def __init__(self, impl: str = 'conv_bram_sr_fast_ternary', module_dir: str = 'conv_2d', wrapper_module_name: str = 'conv_bram_sr_fast_ternary_wrapper'):
         super().__init__(impl, module_dir, wrapper_module_name)
 
     def get_name(self, data_width: int, img_w: int, img_h: int, img_d: int, fil_w: int, fil_h: int, res_d: int, stride_w: int, stride_h: int,
@@ -43,7 +43,7 @@ class Conv2dPwDesign(StandardizedSdcDesign):
 load_package flow
 
 # new project
-project_new -revision v1 -overwrite unrolled_conv_bram_sr_fast
+project_new -revision v1 -overwrite unrolled_conv_bram_sr_fast_ternary
 
 # device
 set_global_assignment -name FAMILY "Arria 10"

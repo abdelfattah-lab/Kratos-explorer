@@ -3,12 +3,12 @@ from util.flow import reset_seed, gen_long_constant_bits
 from structure.consts.shared_defaults import DEFAULTS_TCL, DEFAULTS_WRAPPER_CONV
 from structure.consts.shared_requirements import REQUIRED_KEYS_CONV1D_STRIDE
 
-class Conv1dFuDesign(StandardizedSdcDesign):
+class Conv1dFuTernaryDesign(StandardizedSdcDesign):
     """
     Conv-1D Fully Unrolled design.
     """
 
-    def __init__(self, impl: str = 'conv_reg_1d_full', module_dir: str = 'conv_1d', wrapper_module_name: str = 'conv_reg_1d_full_wrapper'):
+    def __init__(self, impl: str = 'conv_reg_1d_full_ternary', module_dir: str = 'conv_1d', wrapper_module_name: str = 'conv_reg_1d_full_ternary_wrapper'):
         super().__init__(impl, module_dir, wrapper_module_name)
 
     def get_name(self, data_width: int, img_w: int, img_d: int, fil_w: int, res_d: int, stride_w: int, constant_weight: bool, sparsity: float, separate_filters: bool, **kwargs):
@@ -47,7 +47,7 @@ class Conv1dFuDesign(StandardizedSdcDesign):
 load_package flow
 
 # new project
-project_new -revision v1 -overwrite unrolled_conv_reg_1d_full
+project_new -revision v1 -overwrite unrolled_conv_reg_1d_full_ternary
 
 # device
 set_global_assignment -name FAMILY "Arria 10"

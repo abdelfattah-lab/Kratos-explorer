@@ -42,7 +42,7 @@ class GemmTFuDesign(StandardizedSdcDesign):
 load_package flow
 
 # new project
-project_new -revision v1 -overwrite unrolled_mm_bram_parallel
+project_new -revision v1 -overwrite unrolled_mm_reg_full
 
 # device
 set_global_assignment -name FAMILY "Arria 10"

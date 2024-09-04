@@ -3,12 +3,12 @@ from util.flow import reset_seed, gen_long_constant_bits
 from structure.consts.shared_defaults import DEFAULTS_TCL, DEFAULTS_WRAPPER_CONV
 from structure.consts.shared_requirements import REQUIRED_KEYS_CONV2D_STRIDE
 
-class Conv2dPwDesign(StandardizedSdcDesign):
+class Conv2dRpTernaryDesign(StandardizedSdcDesign):
     """
-    Conv-2D Pixel-wise design.
+    Conv-2D Row-Parallel design.
     """
-    
-    def __init__(self, impl: str = 'conv_bram_sr_fast', module_dir: str = 'conv_2d', wrapper_module_name: str = 'conv_bram_sr_fast_wrapper'):
+
+    def __init__(self, impl: str = 'conv_reg_parallel_ternary', module_dir: str = 'conv_2d', wrapper_module_name: str = 'conv_reg_parallel_ternary_wrapper'):
         super().__init__(impl, module_dir, wrapper_module_name)
 
     def get_name(self, data_width: int, img_w: int, img_h: int, img_d: int, fil_w: int, fil_h: int, res_d: int, stride_w: int, stride_h: int,
@@ -20,7 +20,7 @@ class Conv2dPwDesign(StandardizedSdcDesign):
 
     def verify_params(self, params: dict[str, any]) -> dict[str, any]:
         """
-        Verification of parameters for Conv-2D Pixel-wise.
+        Verification of parameters for Conv-2D Row-Parallel.
         """
         return self.verify_required_keys(DEFAULTS_WRAPPER_CONV, REQUIRED_KEYS_CONV2D_STRIDE, params)
 
@@ -43,7 +43,7 @@ class Conv2dPwDesign(StandardizedSdcDesign):
 load_package flow
 
 # new project
-project_new -revision v1 -overwrite unrolled_conv_bram_sr_fast
+project_new -revision v1 -overwrite unrolled_conv_reg_parallel_ternary
 
 # device
 set_global_assignment -name FAMILY "Arria 10"
@@ -66,23 +66,20 @@ set_global_assignment -name SEARCH_PATH {search_path}
 set_instance_assignment -name VIRTUAL_PIN ON -to clk
 set_instance_assignment -name VIRTUAL_PIN ON -to reset
 
-set_instance_assignment -name VIRTUAL_PIN ON -to fil[*][*][*][*][*]
 set_instance_assignment -name VIRTUAL_PIN ON -to val_in
 set_instance_assignment -name VIRTUAL_PIN ON -to rdy_in
 
+set_instance_assignment -name VIRTUAL_PIN ON -to fil[*][*][*][*][*]
+set_instance_assignment -name VIRTUAL_PIN ON -to img[*][*][*][*]
+set_instance_assignment -name VIRTUAL_PIN ON -to result[*][*][*][*]
+
+
 set_instance_assignment -name VIRTUAL_PIN ON -to img_rdaddress[*][*][*]
-set_instance_assignment -name VIRTUAL_PIN ON -to img_wraddress[*][*][*]
 set_instance_assignment -name VIRTUAL_PIN ON -to img_data_in[*][*][*]
-set_instance_assignment -name VIRTUAL_PIN ON -to img_data_out[*][*][*]
-set_instance_assignment -name VIRTUAL_PIN ON -to img_wren[*][*]
 
-
-
-set_instance_assignment -name VIRTUAL_PIN ON -to result_rdaddress[*][*]
-set_instance_assignment -name VIRTUAL_PIN ON -to result_wraddress[*][*]
-set_instance_assignment -name VIRTUAL_PIN ON -to result_data_in[*][*]
-set_instance_assignment -name VIRTUAL_PIN ON -to result_data_out[*][*]
-set_instance_assignment -name VIRTUAL_PIN ON -to result_wren[*]
+set_instance_assignment -name VIRTUAL_PIN ON -to result_wraddress[*][*][*]
+set_instance_assignment -name VIRTUAL_PIN ON -to result_data_out[*][*][*]
+set_instance_assignment -name VIRTUAL_PIN ON -to result_wren[*][*]
 
 
 # effort level
@@ -99,7 +96,7 @@ project_close
 
         return template
     
-    def gen_wrapper(self, data_width, img_w, img_h, img_d, fil_w, fil_h, res_d, constant_weight, sparsity, buffer_stages, separate_filters, **kwargs) -> str:
+    def gen_wrapper(self, data_width, img_w, img_h, img_d, fil_w, fil_h, res_d, constant_weight, sparsity, kernel_only, buffer_stages, separate_filters, **kwargs) -> str:
         template_inputx = 'input   logic    [FILTER_K*IMG_D*FILTER_H*FILTER_W*DATA_WIDTH-1:0]       fil,'
         if constant_weight:
             inputfil = ''
