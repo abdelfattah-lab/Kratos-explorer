@@ -29,6 +29,7 @@ def run_vtr_denoised_v1(
         filter_results: list[str] = ['fmax', 'cpd', 'rcw', 'area_total', 'area_total_used'],
         filter_blocks: list[str] = ['clb', 'fle'],
         seeds: tuple[int, int, int] = (1239, 5741, 1473),
+        verbose: bool = False,
         merge_designs: bool = False,
         avoid_norm: list[str] = [],
         translations: dict[str, str] = {},
@@ -58,6 +59,7 @@ def run_vtr_denoised_v1(
     * filter_results:list[str], list of parameters to extract from VPR (excluding Pb types blocks; see extract_blocks). All will be baseline normalized (unless also in avoid_norm) and plotted.
     * extract_blocks:list[str], list of Pb type blocks to extract from VPR. All will be baseline normalized (unless also in avoid_norm) and plotted.
     * seeds: (int, int, int), a tuple of 3 seeds to use for averaging.
+    * verbose:bool, run in verbose mode. Default: False
     * merge_designs:bool, will take the geometric mean of all designs as the final result if True, else each design is saved as its own separate experiment. Default: False
     * avoid_norm:list[str], list of columns that should not be normalized (i.e., the value stays absolute). Default: empty list
     * translations:dict[str, str], dictionary mapping columns -> long names. If not present in the dictionary, then the column name is re-used. Default: empty dictionary
@@ -124,7 +126,8 @@ def run_vtr_denoised_v1(
         filter_results=filter_results,
         result_kwargs=dict(
             extract_blocks_list=filter_blocks
-        )
+        ),
+        verbose=verbose,
     )
 
     # process results
