@@ -91,7 +91,7 @@ TEMPLATE = '''<!-- Comments are removed to save file size -->
         <equivalent_sites>
           <site pb_type="clb" pin_mapping="direct"/>
         </equivalent_sites>
-        <input name="I" num_pins="{num_pins_clb}" equivalent="full"/>
+        <input name="I" num_pins="{num_pins_clb}"/>
         <input name="cin" num_pins="{num_pins_cin}"/>
         <output name="O" num_pins="{num_opins_clb}" equivalent="none"/>
         <output name="cout" num_pins="{num_pins_cout}"/>
@@ -261,7 +261,7 @@ TEMPLATE = '''<!-- Comments are removed to save file size -->
        routing area up significantly, we estimate into the ~70% range. 
        -->
     <pb_type name="clb">
-      <input name="I1" num_pins="{num_pins_clb}" equivalent="full"/>
+      <input name="I" num_pins="{num_pins_clb}"/>
       <input name="cin" num_pins="{num_pins_cin}"/>
       <output name="O" num_pins="{num_opins_clb}" equivalent="none"/>
       <output name="cout" num_pins="{num_pins_cout}"/>
@@ -1351,18 +1351,18 @@ def gen_carry_link(name, start_i, end_i):
 </direct>"""
    
 
-def gen_xbars(coffe_dict, ble_count, num_pins_ble, fclocal):
+def gen_xbars(coffe_dict, ble_count, num_pins_clb, num_pins_ble, fclocal):
     """
     We map groups of input pins and feedback pins to each individual BLE pin, according to local interconnect population (fpop).
     """
     total_pins_ble = ble_count * num_pins_ble
-    input_ranges = distribute_pin_edges(ble_count, total_pins_ble, fclocal)
+    input_ranges = distribute_pin_edges(num_pins_clb, total_pins_ble, fclocal)
     feedback_ranges = distribute_pin_edges(ble_count, total_pins_ble, fclocal)
 
-    xbar_template = """<mux name="lut{i}" input="{clb_inputs} {feedback_xb}" output="{fle_pin_label}">
+    xbar_template = """<complete name="lut{i}" input="{clb_inputs} {feedback_xb}" output="{fle_pin_label}">
 {delay_matrix_clb}
 {delay_matrix_feedback}
-</mux>"""
+</complete>"""
 
     T_local_CLB_routing = coffe_dict['T_local_CLB_routing']
     T_local_feedback = coffe_dict['T_local_feedback']
@@ -1370,8 +1370,8 @@ def gen_xbars(coffe_dict, ble_count, num_pins_ble, fclocal):
 
     for i, ((input_len, input_range), (feedback_len, feedback_range)) in enumerate(zip(input_ranges, feedback_ranges)):
         # calculate the target FLE pin
-        fle_index = i // ble_count
-        fle_pin_index = i - ble_count * fle_index
+        fle_index = i // num_pins_ble
+        fle_pin_index = i - num_pins_ble * fle_index
         fle_pin_label = f'fle[{fle_index}:{fle_index}].in[{fle_pin_index}:{fle_pin_index}]'
         
         # generate CLB to FLE labels and delay constants
@@ -1385,7 +1385,7 @@ def gen_xbars(coffe_dict, ble_count, num_pins_ble, fclocal):
         # generate feedback labels and delay constants
         feedback_xb_labels = [f'fle[{rng}].out' for rng in feedback_range]
         feedback_xb = ' '.join(feedback_xb_labels)
-        delays_feedback = '\n'.join(str(T_local_feedback) for _ in range(feedback_len))
+        delays_feedback = '\n'.join(str(T_local_feedback) for _ in range(feedback_len * 2)) # 2 outputs per feedback group
         delay_matrix_feedback = f"""<delay_matrix type="max" in_port="{feedback_xb}" out_port="{fle_pin_label}">
   {delays_feedback}
 </delay_matrix>"""
@@ -1426,9 +1426,10 @@ def get_config_dict(coffe_dict: dict[str, any],
     lut_size_large = common_dict['K_large']
 
     # CLB
-    num_opins_clb = ble_count * 2 # output pins
-    config_dict['num_pins_clb'] = common_dict['I_CLB']
-    config_dict['num_opins_clb'] = common_dict['O_CLB']
+    num_pins_clb = common_dict['I_CLB']
+    num_opins_clb = common_dict['O_CLB']
+    config_dict['num_pins_clb'] = num_pins_clb
+    config_dict['num_opins_clb'] = num_opins_clb
     config_dict['clb_opin_range_1'] = f"{ble_count - 1}:0"
     config_dict['clb_opin_range_2'] = f"{num_opins_clb - 1}:{ble_count}"
 
@@ -1465,7 +1466,7 @@ def get_config_dict(coffe_dict: dict[str, any],
     config_dict['fle_to_bleL_pin_index'] = str(lut_size_large-1) + ':0'
 
     # depop xbar according to Fclocal%
-    config_dict['fle_input_xbar'] = gen_xbars(coffe_dict, ble_count, num_pins_fle, common_dict['Fclocal'])
+    config_dict['fle_input_xbar'] = gen_xbars(coffe_dict, ble_count, num_pins_clb, num_pins_fle, common_dict['Fclocal'])
     
     # carry chain links
     config_dict['num_pins_cin'] = 1
