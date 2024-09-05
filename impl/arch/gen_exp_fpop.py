@@ -1305,12 +1305,6 @@ def get_common_configs(ble_count: int, lut_size: int) -> dict[str, any]:
     ret['I_CLB'] = CLB_pins_total
     ret['O_CLB'] = ble_count * 2
 
-    #  N: Fclocal
-    #  2: 1
-    #  3: 0.85
-    # 10: 0.5
-    ret['Fclocal'] = 6.65 / ble_count - 18.3 / (ble_count ** 2) + 18 / (ble_count ** 3) 
-
     # FLE
     shared_small = floor(lut_size_small / 2) # shared input count
     ret['I_shared'] = min(shared_small, lut_size_small - 2) # force at least 2 distinct inputs
@@ -1351,13 +1345,13 @@ def gen_carry_link(name, start_i, end_i):
 </direct>"""
    
 
-def gen_xbars(coffe_dict, ble_count, num_pins_clb, num_pins_ble, fclocal):
+def gen_xbars(coffe_dict, ble_count, num_pins_clb, num_pins_ble, fc_local):
     """
     We map groups of input pins and feedback pins to each individual BLE pin, according to local interconnect population (fpop).
     """
     total_pins_ble = ble_count * num_pins_ble
-    input_ranges = distribute_pin_edges(num_pins_clb, total_pins_ble, fclocal)
-    feedback_ranges = distribute_pin_edges(ble_count, total_pins_ble, fclocal)
+    input_ranges = distribute_pin_edges(num_pins_clb, total_pins_ble, fc_local)
+    feedback_ranges = distribute_pin_edges(ble_count, total_pins_ble, fc_local)
 
     xbar_template = """<complete name="lut{i}" input="{clb_inputs} {feedback_xb}" output="{fle_pin_label}">
 {delay_matrix_clb}
@@ -1403,10 +1397,15 @@ def gen_xbars(coffe_dict, ble_count, num_pins_clb, num_pins_ble, fclocal):
 
 """
 configurable parameters, all integer
+*ble_count = 10
 *cin_mux_stride = 1
 *lut_size = 6
 - lut_size_small = lut_size - 1
 - lut_size_large = lut_size
+*fc_local = 0.5
+*fc_in = 0.15
+*fc_out = 0.1
+*fs = 3
 *adder size is not supported yet
 
 # create xml parameters
@@ -1415,6 +1414,7 @@ def get_config_dict(coffe_dict: dict[str, any],
     ble_count: int,
     cin_mux_stride: int,
     lut_size: int,
+    fc_local: float,
     fc_in: float,
     fc_out: float,
     fs: int,
@@ -1479,6 +1479,7 @@ DEFAULTS = {
     'ble_count': 10,
     'cin_mux_stride': 1,
     'lut_size': 6,
+    'fc_local': 0.5,
     'fc_in': 0.15,
     'fc_out': 0.10,
     'fs': 3,
@@ -1496,16 +1497,18 @@ class GenExpFpopArchFactory(ArchFactory, ParamsChecker):
         ble_count: int,
         cin_mux_stride: int,
         lut_size: int,
+        fc_local: float,
         fc_in: float,
         fc_out: float,
         fs: int,
     **kwargs) -> str:
-      return f"v1.2_N.{ble_count}_K.{lut_size}_cin.{cin_mux_stride}_Fci.{fc_in}_Fco.{fc_out}_Fs.{fs}"
+      return f"v1.2_N.{ble_count}_K.{lut_size}_cin.{cin_mux_stride}_Fcl.{fc_local}_Fci.{fc_in}_Fco.{fc_out}_Fs.{fs}"
 
     def get_arch(self, 
         ble_count: int,
         cin_mux_stride: int,
         lut_size: int,
+        fc_local: float,
         fc_in: float,
         fc_out: float,
         fs: int,
@@ -1519,6 +1522,7 @@ class GenExpFpopArchFactory(ArchFactory, ParamsChecker):
          search_kwargs=dict(
             ble_count=ble_count,
             lut_size=lut_size,
+            fc_local=fc_local,
             fc_in=fc_in,
             fc_out=fc_out,
             fs=fs,
@@ -1542,6 +1546,7 @@ class GenExpFpopArchFactory(ArchFactory, ParamsChecker):
     def get_coffe_input_dict(self, 
         ble_count: int,
         lut_size: int,
+        fc_local: float,
         fc_in: float,
         fc_out: float,
         fs: int,
@@ -1568,7 +1573,7 @@ class GenExpFpopArchFactory(ArchFactory, ParamsChecker):
             Or=2,
             # Number of BLE outputs to local routing
             Ofb=2,
-            Fclocal = common_dict['Fclocal'],
+            Fclocal = fc_local,
 
             # Register select:
             # Defines whether the FF can accept its input directly from a BLE input or not.
