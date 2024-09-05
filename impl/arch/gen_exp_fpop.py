@@ -1,6 +1,6 @@
 from structure.arch import ArchFactory
 from structure.util import ParamsChecker
-from math import floor, comb, ceil
+from math import floor
 from util.flow import distribute_pin_edges
 
 TEMPLATE = '''<!-- Comments are removed to save file size -->
@@ -1466,7 +1466,7 @@ def get_config_dict(coffe_dict: dict[str, any],
     config_dict['fle_to_bleL_pin_index'] = str(lut_size_large-1) + ':0'
 
     # depop xbar according to Fclocal%
-    config_dict['fle_input_xbar'] = gen_xbars(coffe_dict, ble_count, num_pins_clb, num_pins_fle, common_dict['Fclocal'])
+    config_dict['fle_input_xbar'] = gen_xbars(coffe_dict, ble_count, num_pins_clb, num_pins_fle, fc_local)
     
     # carry chain links
     config_dict['num_pins_cin'] = 1
@@ -1541,7 +1541,7 @@ class GenExpFpopArchFactory(ArchFactory, ParamsChecker):
          )
       )
 
-      return TEMPLATE.format(**get_config_dict(coffe_dict, ble_count, cin_mux_stride, lut_size, fc_in, fc_out, fs))
+      return TEMPLATE.format(**get_config_dict(coffe_dict, ble_count, cin_mux_stride, lut_size, fc_local, fc_in, fc_out, fs))
     
     def get_coffe_input_dict(self, 
         ble_count: int,
