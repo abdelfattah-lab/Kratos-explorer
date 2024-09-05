@@ -11,12 +11,12 @@ class Conv1dPwDesign(StandardizedSdcDesign):
     def __init__(self, impl: str = 'conv_bram_1d', module_dir: str = 'conv_1d', wrapper_module_name: str = 'conv_bram_1d_wrapper'):
         super().__init__(impl, module_dir, wrapper_module_name)
 
-    def get_name(self, data_width: int, img_w: int, img_d: int, fil_w: int, res_d: int, stride_w: int,
+    def get_name(self, tree_base: int, data_width: int, img_w: int, img_d: int, fil_w: int, res_d: int, stride_w: int,
                     constant_weight: bool, sparsity: float, **kwargs):
         """
         Name generation 
         """
-        return f'i.{self.impl}_d.{data_width}_w.{img_w}_d.{img_d}_fw.{fil_w}_rd.{res_d}_sw.{stride_w}_c.{constant_weight}_s.{sparsity}'
+        return f'i.{self.impl}_tb.{tree_base}_d.{data_width}_w.{img_w}_d.{img_d}_fw.{fil_w}_rd.{res_d}_sw.{stride_w}_c.{constant_weight}_s.{sparsity}'
 
     def verify_params(self, params: dict[str, any]) -> dict[str, any]:
         """
@@ -102,7 +102,7 @@ project_close
 '''
         return template
     
-    def gen_wrapper(self, data_width, img_w, img_d, fil_w, res_d, stride_w, separate_filters, constant_weight, sparsity, **kwargs) -> str:
+    def gen_wrapper(self, tree_base, data_width, img_w, img_d, fil_w, res_d, stride_w, separate_filters, constant_weight, sparsity, **kwargs) -> str:
         template_inputx = 'input   logic    [DATA_WIDTH-1:0]               fil                 [0:FILTER_K-1][0:IMG_D-1][0:FILTER_L-1],'
         if constant_weight:
             inputfil = ''
@@ -129,6 +129,7 @@ module {self.wrapper_module_name}
     parameter FILTER_L = {fil_w},
     parameter RESULT_D = {res_d},
     parameter STRIDE_W = {stride_w},
+    parameter TREE_BASE = {tree_base},
 
     // parameters below are not meant to be set manually
     // ==============================
@@ -169,7 +170,7 @@ module {self.wrapper_module_name}
             logic   [RESULT_D-1:0]                           result_wren  ;
 
 
-    {self.impl} #(DATA_WIDTH,IMG_W,IMG_D,FILTER_L,RESULT_D,STRIDE_W) conv_1d_inst
+    {self.impl} #(DATA_WIDTH,IMG_W,IMG_D,FILTER_L,RESULT_D,STRIDE_W,TREE_BASE) conv_1d_inst
     (
         .clk(clk),
         .reset(reset),

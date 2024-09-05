@@ -1,76 +1,16 @@
 `ifndef __MULTIPLY_CORE_EVO_V__
 `define __MULTIPLY_CORE_EVO_V__
+`include "calc/log.v"
 `include "vc/vc_tools.v"
 `include "vc/vc_cycle_buffer.v"
-
-module multiply_core_evo_withaddr_ternary
-#(
-    parameter DATA_WIDTH = 8,
-    parameter DATA_LENGTH = 64,
-    parameter ADDRESS_WIDTH_I = 8, 
-    parameter ADDRESS_WIDTH_K = 8
-)
-(
-    input   logic                           clk,
-    input   logic                           reset,
-
-    input   logic   [DATA_WIDTH*DATA_LENGTH-1:0]        row ,
-    input   logic   [DATA_WIDTH*DATA_LENGTH-1:0]        col ,
-    output  logic   [DATA_WIDTH-1:0]        sum_out,
-
-    input   logic   [ADDRESS_WIDTH_I-1:0]   addr_i_in,
-    input   logic   [ADDRESS_WIDTH_K-1:0]   addr_k_in,
-    input   logic                           val_in,
-
-    output  logic   [ADDRESS_WIDTH_I-1:0]   addr_i_out,
-    output  logic   [ADDRESS_WIDTH_K-1:0]   addr_k_out,
-    output  logic                           val_out
-);
-    multiply_core_evo_ternary #(DATA_WIDTH, DATA_LENGTH) mac_tree_ternary
-    (
-        .clk(clk),
-        .reset(reset),
-        .row(row),
-        .col(col),
-        .sum_out(sumout)
-    );
-
-    // address and valid chain
-
-    multiply_core_evo_chain_base #(ADDRESS_WIDTH_I, DATA_LENGTH, 3) addr_i_chain
-    (
-        .clk(clk),
-        .reset(reset),
-
-        .in(addr_i_in),
-        .out(addr_i_out)
-    );
-
-    multiply_core_evo_chain_base #(ADDRESS_WIDTH_K, DATA_LENGTH, 3) addr_k_chain
-    (
-        .clk(clk),
-        .reset(reset),
-
-        .in(addr_k_in),
-        .out(addr_k_out)
-    );
-
-    multiply_core_evo_chain_base #(1, DATA_LENGTH, 3) val_chain
-    (
-        .clk(clk),
-        .reset(reset),
-
-        .in(val_in),
-        .out(val_out)
-    );
-endmodule
 
 module multiply_core_evo_withaddr
 #(
     parameter DATA_WIDTH = 8,
     parameter DATA_LENGTH = 64,
     parameter ADDRESS_WIDTH_I = 8, 
-    parameter ADDRESS_WIDTH_K = 8
+    parameter ADDRESS_WIDTH_K = 8,
+    parameter TREE_BASE = 2
 )
 (
     input   logic                           clk,
@@ -88,18 +28,18 @@ module multiply_core_evo_withaddr
     output  logic   [ADDRESS_WIDTH_K-1:0]   addr_k_out,
     output  logic                           val_out
 );
-    multiply_core_evo #(DATA_WIDTH, DATA_LENGTH) mac_tree
+    multiply_core_evo #(DATA_WIDTH, DATA_LENGTH, TREE_BASE) mac_tree
     (
         .clk(clk),
         .reset(reset),
         .row(row),
         .col(col),
-        .sum_out(sumout)
+        .sum_out(sum_out)
     );
 
     // address and valid chain
 
-    multiply_core_evo_chain #(ADDRESS_WIDTH_I, DATA_LENGTH) addr_i_chain
+    multiply_core_evo_chain #(ADDRESS_WIDTH_I, DATA_LENGTH, TREE_BASE) addr_i_chain
     (
         .clk(clk),
         .reset(reset),
@@ -108,7 +48,7 @@ module multiply_core_evo_withaddr
         .out(addr_i_out)
     );
 
-    multiply_core_evo_chain #(ADDRESS_WIDTH_K, DATA_LENGTH) addr_k_chain
+    multiply_core_evo_chain #(ADDRESS_WIDTH_K, DATA_LENGTH, TREE_BASE) addr_k_chain
     (
         .clk(clk),
         .reset(reset),
@@ -117,7 +57,7 @@ module multiply_core_evo_withaddr
         .out(addr_k_out)
     );
 
-    multiply_core_evo_chain #(1, DATA_LENGTH) val_chain
+    multiply_core_evo_chain #(1, DATA_LENGTH, TREE_BASE) val_chain
     (
         .clk(clk),
         .reset(reset),
@@ -127,11 +67,11 @@ module multiply_core_evo_withaddr
     );
 endmodule
 
-//MAC with ternary adder tree.
-module multiply_core_evo_ternary
+module multiply_core_evo
 #(
-    parameter DATA_WIDTH = 8,
-    parameter DATA_LENGTH = 64
+    parameter int DATA_WIDTH = 8,
+    parameter int DATA_LENGTH = 64,
+    parameter int TREE_BASE = 2
 )
 (
     input   logic                           clk,
@@ -144,11 +84,13 @@ module multiply_core_evo_ternary
     output  logic   [DATA_WIDTH-1:0]        sum_out
 );
 
-    localparam LEAST3POWLEN = 3 ** $ceil($log10(DATA_LENGTH) / $log10(3));
-    localparam LASTI = (3 * LEAST3POWLEN - 1) / 2 - 1;
+    localparam int LEVELS = clog_base(DATA_LENGTH, TREE_BASE);
+    localparam int LEASTPOWLEN = TREE_BASE ** LEVELS;
+    localparam int TREE_DIV = TREE_BASE - 1;
+    localparam int LASTI = (TREE_BASE * LEASTPOWLEN - 1) / TREE_DIV - 1;
+
     logic   [DATA_WIDTH-1:0]        inner_result [0:LASTI];
 
-    
     assign sum_out = inner_result[LASTI];
     // logic   [DATA_WIDTH-1:0]        row_buf [0:DATA_LENGTH-1];
     // logic   [DATA_WIDTH-1:0]        col_buf [0:DATA_LENGTH-1];
@@ -196,19 +138,25 @@ module multiply_core_evo_ternary
         end
         
         // complete the rest of the inner_result with 0
-        for (i = DATA_LENGTH; i < LEAST3POWLEN; i = i + 1) begin
+        for (i = DATA_LENGTH; i < LEASTPOWLEN; i = i + 1) begin
             assign inner_result[i] = 0;
         end
 
         // tree structure adder
-        for (k = LEAST3POWLEN; k > 1; k = k / 3) begin
-            for (j = 0; j < k; j = j + 3) begin
-
+        for (k = LEVELS; k > 0; k = k - 1) begin
+            for (j = 0; j < TREE_BASE ** (k - 1); j = j + 1) begin
+                logic  [DATA_WIDTH-1:0]    partial_sum [0:TREE_DIV];
                 logic  [DATA_WIDTH-1:0]    temp_sum;
                 logic  [DATA_WIDTH-1:0]    temp_res;
-                assign temp_sum = inner_result[3 * (LEAST3POWLEN - k) / 2 + j] + inner_result[3 * (LEAST3POWLEN - k) / 2 + j + 1] + inner_result[3 * (LEAST3POWLEN - k) / 2 + j + 2];
-                assign inner_result[(3 * LEAST3POWLEN - k) / 2 + j / 3] = temp_res;
                 
+                assign partial_sum[0] = inner_result[int'(TREE_BASE * (TREE_BASE ** LEVELS - TREE_BASE ** k) / (TREE_BASE - 1)) + j * TREE_BASE];
+                for (i = 1; i < TREE_BASE; i=i+1) begin
+                    assign partial_sum[i] = partial_sum[i-1] + inner_result[int'(TREE_BASE * (TREE_BASE ** LEVELS - TREE_BASE ** k) / (TREE_BASE - 1)) + j * TREE_BASE + i];
+                end
+
+                assign temp_sum = partial_sum[TREE_BASE-1];
+                assign inner_result[int'((TREE_BASE * LEASTPOWLEN - TREE_BASE ** k) / TREE_DIV) + j] = temp_res;
+
                 vc_reg #(DATA_WIDTH) add_reg (
                     .d(temp_sum),
                     .q(temp_res),
@@ -219,102 +167,11 @@ module multiply_core_evo_ternary
     endgenerate
 endmodule
 
-module multiply_core_evo
-#(
-    parameter DATA_WIDTH = 8,
-    parameter DATA_LENGTH = 64
-)
-(
-    input   logic                           clk,
-    input   logic                           reset,
-
-    input   logic   [DATA_WIDTH*DATA_LENGTH-1:0]        row ,
-    input   logic   [DATA_WIDTH*DATA_LENGTH-1:0]        col ,
-
-
-    output  logic   [DATA_WIDTH-1:0]        sum_out
-);
-
-    localparam LEAST2POWLEN = 2 ** $clog2(DATA_LENGTH);
-
-    logic   [DATA_WIDTH-1:0]        inner_result [0:2 * LEAST2POWLEN-2];
-
-    
-    assign sum_out = inner_result[2 * LEAST2POWLEN - 2];
-    // logic   [DATA_WIDTH-1:0]        row_buf [0:DATA_LENGTH-1];
-    // logic   [DATA_WIDTH-1:0]        col_buf [0:DATA_LENGTH-1];
-    genvar i;
-    genvar k;
-    genvar j;
-    generate
-        // generate multiplier for each element from row and col, and store the result in result[0:DATA_LENGTH-1]
-        for (i = 0; i < DATA_LENGTH; i = i + 1) begin
-            // buffer one cycle for input row and col
-            logic [DATA_WIDTH-1:0]        row_buf_temp;
-            logic [DATA_WIDTH-1:0]        col_buf_temp;
-            logic [DATA_WIDTH-1:0]        row_input_temp;
-            logic [DATA_WIDTH-1:0]        col_input_temp;
-
-            assign row_input_temp = row[(i+1)*DATA_WIDTH-1:i*DATA_WIDTH];
-            assign col_input_temp = col[(i+1)*DATA_WIDTH-1:i*DATA_WIDTH];
-
-            // assign row_buf[i] = row_buf_temp;
-            // assign col_buf[i] = col_buf_temp;
-
-            vc_reg #(DATA_WIDTH) row_buf_reg (
-                .d(row_input_temp),
-                .q(row_buf_temp),
-                .clk(clk)
-            );
-
-            vc_reg #(DATA_WIDTH) col_buf_reg (
-                .d(col_input_temp),
-                .q(col_buf_temp),
-                .clk(clk)
-            );
-
-            // multiply row and col to temp
-            logic   [DATA_WIDTH-1:0]    temp_mul;
-            logic   [DATA_WIDTH-1:0]    temp_res;
-            assign temp_mul = row_buf_temp * col_buf_temp;
-            assign inner_result[i] = temp_res;
-            
-            vc_reg #(DATA_WIDTH) mul_reg (
-                .d(temp_mul),
-                .q(temp_res),
-                .clk(clk)
-            );
-        end
-        
-        // complete the rest of the inner_result with 0
-        for (i = DATA_LENGTH; i < LEAST2POWLEN; i = i + 1) begin
-            assign inner_result[i] = 0;
-        end
-
-        // tree structure adder
-        for (k = LEAST2POWLEN; k > 1; k = k / 2) begin
-            for (j = 0; j < k; j = j + 2) begin
-
-                logic  [DATA_WIDTH-1:0]    temp_sum;
-                logic  [DATA_WIDTH-1:0]    temp_res;
-                assign temp_sum = inner_result[2 * LEAST2POWLEN - 2 * k + j] + inner_result[2 * LEAST2POWLEN - 2 * k + j + 1];
-                assign inner_result[2 * LEAST2POWLEN - k + j / 2] = temp_res;
-                
-                vc_reg #(DATA_WIDTH) add_reg (
-                    .d(temp_sum),
-                    .q(temp_res),
-                    .clk(clk)
-                );
-            end
-        end
-    endgenerate
-endmodule
-
-module multiply_core_evo_chain_base
+module multiply_core_evo_chain
 #(
     parameter INFO_WIDTH = 8,
     parameter DATA_LENGTH = 64,
-    parameter BASE = 2
+    parameter TREE_BASE = 2
 )(
     input   logic                           clk,
     input   logic                           reset,
@@ -324,7 +181,7 @@ module multiply_core_evo_chain_base
 );
 
     localparam extra_align_stage = 2;
-    localparam total_stages = $ceil($log10(DATA_LENGTH) / $log10(BASE)) + extra_align_stage;
+    localparam total_stages = clog_base(DATA_LENGTH, TREE_BASE) + extra_align_stage;
 
     vc_cycle_buffer #(INFO_WIDTH, total_stages) cycle_buffer_inst 
     (
@@ -335,24 +192,4 @@ module multiply_core_evo_chain_base
 
 endmodule
 
-//for backward compatibility: default to base 2
-module multiply_core_evo_chain
-#(
-    parameter INFO_WIDTH = 8,
-    parameter DATA_LENGTH = 64
-)(
-    input   logic                           clk,
-    input   logic                           reset,
-
-    input   logic   [INFO_WIDTH-1:0]        in,
-    output  logic   [INFO_WIDTH-1:0]        out
-);
-    multiply_core_evo_chain_base #(INFO_WIDTH, DATA_LENGTH, 2) wrap
-    (
-        .clk(clk),
-        .reset(reset),
-        .in(in),
-        .out(out)
-    );
-endmodule
 `endif

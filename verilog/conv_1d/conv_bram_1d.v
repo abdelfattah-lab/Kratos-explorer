@@ -12,6 +12,7 @@ module conv_bram_1d
     parameter FILTER_L = 3,
     parameter RESULT_D = 4,
     parameter STRIDE_W = 1,
+    parameter TREE_BASE = 2,
 
     // parameters below are not meant to be set manually
     // ==============================
@@ -65,7 +66,7 @@ module conv_bram_1d
             assign img_rdaddr[(i+1)*IMG_RAM_ADDR_WIDTH-1:i*IMG_RAM_ADDR_WIDTH] = img_rdaddr_dup;
         end
         for(i = 0; i < FILTER_K; i = i + 1) begin
-            conv_bram_1d_dpath #(DATA_WIDTH,IMG_W,IMG_D,FILTER_L,RESULT_D, STRIDE_W) conv_1d_dpath_inst
+            conv_bram_1d_dpath #(DATA_WIDTH,IMG_W,IMG_D,FILTER_L,RESULT_D, STRIDE_W, TREE_BASE) conv_1d_dpath_inst
             (
                 .clk(clk),
                 .reset(reset),

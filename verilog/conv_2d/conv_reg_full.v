@@ -16,6 +16,9 @@ module conv_reg_full
     parameter STRIDE_H = 1, 
 
     parameter buffer_stages = 5, // $clog2(FILTER_K / 8),
+
+    parameter TREE_BASE = 2,
+
     // parameters below are not meant to be set manually
     // ==============================
     
@@ -64,7 +67,7 @@ module conv_reg_full
                     // instantiate a multiply core
                     logic  [DATA_WIDTH-1:0]   input_data_flattened [0:data_length_per_filter-1];
                     logic  [DATA_WIDTH-1:0]   filter_data_flattened [0:data_length_per_filter-1];
-                    multiply_core_evo_withaddr #(DATA_WIDTH, data_length_per_filter, 1,1) multiply_cores
+                    multiply_core_evo_withaddr #(DATA_WIDTH, data_length_per_filter, 1,1, TREE_BASE) multiply_cores
                     (
                         .clk(clk),
                         .reset(reset),
@@ -97,7 +100,7 @@ module conv_reg_full
 
 
     // use one multiply core for transfering opqaue field
-    multiply_core_evo_withaddr #(1, data_length_per_filter, 8, 1) opqaue_cycle_match
+    multiply_core_evo_withaddr #(1, data_length_per_filter, 8, 1, TREE_BASE) opqaue_cycle_match
     (
         .clk(clk),
         .reset(reset),

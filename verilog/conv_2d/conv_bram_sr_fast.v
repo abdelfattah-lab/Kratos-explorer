@@ -17,6 +17,8 @@ module conv_bram_sr_fast
     parameter STRIDE_H = 1,
 
     parameter buffer_stages = 5, // $clog2(FILTER_K / 8),
+    
+    parameter TREE_BASE = 2,
 
     // parameters below are not meant to be set manually
     // ==============================
@@ -98,7 +100,7 @@ module conv_bram_sr_fast
     genvar k;
     generate
         for (k = 0; k < FILTER_K; k = k + 1) begin
-        conv_bram_sr_fast_dpath #(DATA_WIDTH,IMG_W,IMG_H,IMG_D,FILTER_L,FILTER_K,STRIDE_W,STRIDE_H) conv_bram_sr_fast_dpath_inst (
+        conv_bram_sr_fast_dpath #(DATA_WIDTH,IMG_W,IMG_H,IMG_D,FILTER_L,FILTER_K,STRIDE_W,STRIDE_H, TREE_BASE) conv_bram_sr_fast_dpath_inst (
             .clk(clk),
             .reset(reset),
 

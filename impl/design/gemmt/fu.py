@@ -11,11 +11,11 @@ class GemmTFuDesign(StandardizedSdcDesign):
     def __init__(self, impl: str = 'mm_reg_full', module_dir: str = 'gemmt', wrapper_module_name: str = 'mm_reg_full_wrapper'):
         super().__init__(impl, module_dir, wrapper_module_name)
 
-    def get_name(self, data_width: int, row_num: int, col_num: int, length: int, constant_weight: bool = True, sparsity: float = 0.0, **kwargs):
+    def get_name(self, tree_base:int, data_width: int, row_num: int, col_num: int, length: int, constant_weight: bool = True, sparsity: float = 0.0, **kwargs):
         """
         Name generation 
         """
-        return f'i.{self.impl}_d.{data_width}_r.{row_num}_c.{col_num}_l.{length}_c.{constant_weight}_s.{sparsity}'
+        return f'i.{self.impl}_tb.{tree_base}_d.{data_width}_r.{row_num}_c.{col_num}_l.{length}_c.{constant_weight}_s.{sparsity}'
 
     def verify_params(self, params: dict[str, any]) -> dict[str, any]:
         """
@@ -86,7 +86,7 @@ project_close
 
         return template
     
-    def gen_wrapper(self, data_width, row_num, col_num, length, constant_weight, sparsity, **kwargs) -> str:
+    def gen_wrapper(self, tree_base, data_width, row_num, col_num, length, constant_weight, sparsity, **kwargs) -> str:
         template_inputx = 'input   logic  [DATA_WIDTH*LENGTH*COL_NUM-1:0]        weights ,'
         if constant_weight:
             inputx = ''
@@ -107,6 +107,7 @@ module {self.wrapper_module_name}
     parameter ROW_NUM = {row_num},
     parameter COL_NUM = {col_num},
     parameter LENGTH = {length},
+    parameter TREE_BASE = {tree_base},
     // below are parameters not meant to be set manually
     parameter ROW_ADDR_WIDTH = $clog2(ROW_NUM),
     parameter COL_ADDR_WIDTH = $clog2(COL_NUM),
@@ -128,7 +129,7 @@ module {self.wrapper_module_name}
 
     {constant_bits}
 
-    {self.impl} #(DATA_WIDTH, ROW_NUM, COL_NUM, LENGTH) mm_reg_inst
+    {self.impl} #(DATA_WIDTH, ROW_NUM, COL_NUM, LENGTH, TREE_BASE) mm_reg_inst
     (
         .clk(clk),
         .reset(reset),

@@ -23,6 +23,9 @@ module conv_reg_parallel
 
     parameter buffer_stages = 5, // $clog2(FILTER_K / 8),
     parameter use_bram = 0, // use bram or not, if use bram, then assume read data has 1 cycle latency, if use reg, then assume read data has 0 cycle latency
+    
+    parameter TREE_BASE = 2,
+
     // parameters below are not meant to be set manually
     // ==============================
     
@@ -115,7 +118,7 @@ module conv_reg_parallel
             for (j = 0; j < RESULT_W; j = j + 1) begin
                 logic   [DATA_WIDTH-1:0]    input_flattened     [0:IMG_D * FILTER_H * FILTER_W- 1];
                 logic   [DATA_WIDTH-1:0]    weight_flattened    [0:IMG_D * FILTER_H * FILTER_W - 1];
-                multiply_core_evo_withaddr # (DATA_WIDTH, IMG_D * FILTER_H * FILTER_W, RESULT_H_ADDR_WIDTH, 1) mulcore
+                multiply_core_evo_withaddr # (DATA_WIDTH, IMG_D * FILTER_H * FILTER_W, RESULT_H_ADDR_WIDTH, 1, TREE_BASE) mulcore
                 (
                     .clk(clk),
                     .reset(reset),

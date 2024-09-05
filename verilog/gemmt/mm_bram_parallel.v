@@ -9,6 +9,9 @@ module mm_bram_parallel
     parameter ROW_NUM = 32,
     parameter COL_NUM = 32,
     parameter LENGTH = 32,
+
+    parameter TREE_BASE = 2,
+
     // below are parameters not meant to be set manually
     parameter ROW_ADDR_WIDTH = $clog2(ROW_NUM),
     parameter COL_ADDR_WIDTH = $clog2(COL_NUM),
@@ -60,7 +63,7 @@ module mm_bram_parallel
 
         .last_val(last_val)
     );
-    mm_bram_parallel_dpath #(DATA_WIDTH,ROW_NUM,COL_NUM,LENGTH) mm_bram_parallel_dpath_inst
+    mm_bram_parallel_dpath #(DATA_WIDTH,ROW_NUM,COL_NUM,LENGTH, TREE_BASE) mm_bram_parallel_dpath_inst
     (
         .clk(clk),
         .reset(reset),

@@ -12,7 +12,7 @@ module conv_reg_1d_full
     parameter FILTER_L = 3,
     parameter RESULT_D = 8,
     parameter STRIDE_W = 1,
-
+    parameter TREE_BASE = 2,
     // parameters below are not meant to be set manually
     // ==============================
     parameter RESULT_W = (IMG_W - FILTER_L) / STRIDE_W + 1,
@@ -54,7 +54,7 @@ module conv_reg_1d_full
                     end
                 end
                 
-                multiply_core_evo #(DATA_WIDTH, mul_length) mulcore_inst
+                multiply_core_evo #(DATA_WIDTH, mul_length, TREE_BASE) mulcore_inst
                 (
                     .clk(clk),
                     .reset(reset),
@@ -67,7 +67,7 @@ module conv_reg_1d_full
     endgenerate
     
     // use one multiply core for transfering opqaue field
-    multiply_core_evo_chain #(8, mul_length) opqaue_cycle_match
+    multiply_core_evo_chain #(8, mul_length, TREE_BASE) opqaue_cycle_match
     (
         .clk(clk),
         .reset(reset),

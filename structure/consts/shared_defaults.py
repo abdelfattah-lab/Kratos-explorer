@@ -32,7 +32,8 @@ DEFAULTS_TCL = {
 DEFAULTS_WRAPPER = {
     'constant_weight': True,
     'sparsity': 0.0,
-    'clock': 1
+    'clock': 1,
+    'tree_base': 2,
 }
 DEFAULTS_WRAPPER_CONV = {
     'buffer_stages': 0,

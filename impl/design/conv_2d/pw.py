@@ -11,12 +11,12 @@ class Conv2dPwDesign(StandardizedSdcDesign):
     def __init__(self, impl: str = 'conv_bram_sr_fast', module_dir: str = 'conv_2d', wrapper_module_name: str = 'conv_bram_sr_fast_wrapper'):
         super().__init__(impl, module_dir, wrapper_module_name)
 
-    def get_name(self, data_width: int, img_w: int, img_h: int, img_d: int, fil_w: int, fil_h: int, res_d: int, stride_w: int, stride_h: int,
+    def get_name(self, tree_base: int, data_width: int, img_w: int, img_h: int, img_d: int, fil_w: int, fil_h: int, res_d: int, stride_w: int, stride_h: int,
                     constant_weight: bool, sparsity: float, buffer_stages: int, separate_filters: bool, **kwargs):
         """
         Name generation 
         """
-        return f'i.{self.impl}_d.{data_width}_w.{img_w}_h.{img_h}_d.{img_d}_fw.{fil_w}_fh.{fil_h}_rd.{res_d}_sw.{stride_w}_sh.{stride_h}_c.{constant_weight}_s.{sparsity}_bf.{buffer_stages}_sf.{separate_filters}'
+        return f'i.{self.impl}_tb.{tree_base}_d.{data_width}_w.{img_w}_h.{img_h}_d.{img_d}_fw.{fil_w}_fh.{fil_h}_rd.{res_d}_sw.{stride_w}_sh.{stride_h}_c.{constant_weight}_s.{sparsity}_bf.{buffer_stages}_sf.{separate_filters}'
 
     def verify_params(self, params: dict[str, any]) -> dict[str, any]:
         """
@@ -99,8 +99,8 @@ project_close
 
         return template
     
-    def gen_wrapper(self, data_width, img_w, img_h, img_d, fil_w, fil_h, res_d, constant_weight, sparsity, buffer_stages, separate_filters, **kwargs) -> str:
-        template_inputx = 'input   logic    [FILTER_K*IMG_D*FILTER_H*FILTER_W*DATA_WIDTH-1:0]       fil,'
+    def gen_wrapper(self, tree_base, data_width, img_w, img_h, img_d, fil_w, fil_h, res_d, stride_w, stride_h, constant_weight, sparsity, buffer_stages, separate_filters, **kwargs) -> str:
+        template_inputx = 'input   logic    [DATA_WIDTH*FILTER_K*IMG_D*FILTER_H*FILTER_W-1:0]               fil ,'
         if constant_weight:
             inputfil = ''
             reset_seed()
@@ -108,7 +108,9 @@ project_close
                 fil_k = res_d // img_d
             else:
                 fil_k = res_d
-            constant_bits = gen_long_constant_bits(fil_k*img_d*fil_h*fil_w*data_width, sparsity, 'FILTER_K*IMG_D*FILTER_H*FILTER_W*DATA_WIDTH', 'constfil')
+
+            # divide the long contstant string into multiple small one so parser will work, maximum bits per const is 8192. (the actual limit of parmys is 16384)
+            constant_bits = gen_long_constant_bits(fil_k * img_d * fil_h * fil_w * data_width, sparsity, 'FILTER_K*IMG_D*FILTER_H*FILTER_W*DATA_WIDTH', 'constfil')
             fil_in = 'constfil'
         else:
             inputfil = template_inputx
@@ -116,7 +118,7 @@ project_close
             fil_in = 'fil'
 
         template = f'''`include "{self.module_dir}/{self.impl}.v"
-`include "vc/vc_tools.v"
+`include "vc/vc_sram.v"
 module {self.wrapper_module_name}
 #(
     parameter DATA_WIDTH = {data_width}, // data width
@@ -127,107 +129,117 @@ module {self.wrapper_module_name}
     parameter FILTER_H = {fil_h}, // filter height
     parameter RESULT_D = {res_d}, // filter numbers
     
+    parameter STRIDE_W = {stride_w}, 
+    parameter STRIDE_H = {stride_h},
+    parameter BUFFER_STAGES = {buffer_stages}, // number of pipeline stages in buffer
+    
+    parameter TREE_BASE = {tree_base},
 
-
-    parameter buffer_stages = {buffer_stages}, // $clog2(FILTER_K / 8),
-    parameter use_bram = 0, // use bram or not, if use bram, then assume read data has 1 cycle latency, if use reg, then assume read data has 0 cycle latency
     // parameters below are not meant to be set manually
     // ==============================
-    
-    parameter STRIDE_W = 1,  // TODO: support non 1 stride
-    parameter STRIDE_H = 1,  // TODO: support non 1 stride
-
     parameter RESULT_W = (IMG_W - FILTER_W) / STRIDE_W + 1,
     parameter RESULT_H = (IMG_H - FILTER_H) / STRIDE_H + 1,
-    parameter FILTER_K = RESULT_D,
+    parameter FILTER_K = RESULT_D{'/ IMG_D' if separate_filters else ''},
 
     // each BRAM stores one image channel, access addr = w + h * IMG_W
     parameter IMG_W_ADDR_WIDTH = $clog2(IMG_W),
     parameter IMG_H_ADDR_WIDTH = $clog2(IMG_H),
-    parameter IMG_RAM_ADDR_WIDTH = $clog2(IMG_H),
+    parameter IMG_RAM_ADDR_WIDTH = $clog2(IMG_W * IMG_H),
+    parameter IMG_RAM_ADDR_WIDTH_PER_STRIPE = $clog2(IMG_W * IMG_H / FILTER_K),
     parameter IMG_D_ADDR_WIDTH = $clog2(IMG_D),
     
     // filters (weights) are provides from ports, and protocal is that weights should be kept same
     parameter FILTER_W_ADDR_WIDTH = $clog2(FILTER_W),
     parameter FILTER_H_ADDR_WIDTH = $clog2(FILTER_H),
 
-    // each register stores one column of one result channel
+    // each BRAM stores one result channel, access addr = w + h * RESULT_W
     parameter RESULT_W_ADDR_WIDTH = $clog2(RESULT_W),
     parameter RESULT_H_ADDR_WIDTH = $clog2(RESULT_H),
     parameter RESULT_RAM_ADDR_WIDTH = $clog2(RESULT_W * RESULT_H)
-)(
+)
+(
     // clock and reset
     input   logic                                           clk,
     input   logic                                           reset,
-
+    // filters
+    {inputfil}
     input   logic                                           val_in,
     output  logic                                           rdy_in,
-    {inputfil}
-    input   logic   [IMG_D*IMG_H*IMG_W*DATA_WIDTH-1:0]             img,
-    output  logic   [RESULT_D*RESULT_H*RESULT_W*DATA_WIDTH-1:0]    result 
+    // images
+    input   logic    [IMG_RAM_ADDR_WIDTH_PER_STRIPE*IMG_D*FILTER_W-1:0]    img_wraddress,
+    input   logic    [DATA_WIDTH*IMG_D*FILTER_W-1:0]                       img_data_in  ,
+    input   logic    [IMG_D*FILTER_W-1:0]                                  img_wren     ,
+
+    // results
+    input   logic    [RESULT_RAM_ADDR_WIDTH*RESULT_D-1:0]            result_rdaddress,
+    output  logic    [DATA_WIDTH*RESULT_D-1:0]                       result_data_out  
 );
 
+
+    logic    [IMG_RAM_ADDR_WIDTH_PER_STRIPE*IMG_D*FILTER_W-1:0]        img_rdaddress  ;
+    logic    [DATA_WIDTH*IMG_D*FILTER_W-1:0]                           img_data_out   ;
+
+    logic    [RESULT_RAM_ADDR_WIDTH*RESULT_D-1:0]                result_wraddress;
+    logic    [DATA_WIDTH*RESULT_D-1:0]                           result_data_in  ;
+    logic    [RESULT_D-1:0]                                      result_wren     ;
+
 {constant_bits} 
-    
-    logic    [IMG_D*IMG_W*IMG_RAM_ADDR_WIDTH-1:0]               img_rdaddress;
-    logic    [IMG_D*IMG_W*DATA_WIDTH-1:0]                       img_data_in;
-    // results
-    logic    [RESULT_D*RESULT_W*RESULT_H_ADDR_WIDTH-1:0]        result_wraddress;
-    logic    [RESULT_D*RESULT_W*DATA_WIDTH-1:0]                 result_data_out;
-    logic    [RESULT_D*RESULT_W-1:0]                            result_wren;
 
-    genvar i, j, k;
+    genvar i;
+    genvar j;
     generate
-        // image buffer registers
         for (i = 0; i < IMG_D; i = i + 1) begin
-            for (k = 0; k < IMG_W; k = k + 1) begin
+            for (j = 0; j < FILTER_W; j = j + 1) begin
+                vc_sram_1r1w #(DATA_WIDTH, IMG_W * IMG_H / FILTER_K) sram_img
+                (
+                    .clk(clk),
 
-                logic [DATA_WIDTH*IMG_H-1:0] img_h_stripe;
-                
-                for (j = 0; j < IMG_H; j = j + 1) begin
-                    vc_EnReg #(DATA_WIDTH) input_reg
-                    (
-                        .clk(clk),
-                        .en(val_in),
-                        .d(img[(i*IMG_H*IMG_W + j*IMG_H + k)*DATA_WIDTH +: DATA_WIDTH]),
-                        .q(img_h_stripe[j * DATA_WIDTH +: DATA_WIDTH])
-                    );
-                end
-                logic [IMG_H_ADDR_WIDTH-1:0] img_h_stripe_addr;
-                assign img_h_stripe_addr = img_rdaddress[(i * IMG_W + k) * IMG_RAM_ADDR_WIDTH +: IMG_RAM_ADDR_WIDTH];
-                assign img_data_in[(i * IMG_W + k) * DATA_WIDTH +: DATA_WIDTH] = img_h_stripe[img_h_stripe_addr * DATA_WIDTH +: DATA_WIDTH];
+                    .data_in(img_data_in[(i * FILTER_W + j + 1) * DATA_WIDTH - 1 : (i * FILTER_W + j) * DATA_WIDTH]),
+                    .data_out(img_data_out[(i * FILTER_W + j + 1) * DATA_WIDTH - 1 : (i * FILTER_W + j) * DATA_WIDTH]),
+
+                    .rdaddress(img_rdaddress[(i * FILTER_W + j + 1) * IMG_W_ADDR_WIDTH_PER_STRIPE - 1 : (i * FILTER_W + j) * IMG_W_ADDR_WIDTH_PER_STRIPE]),
+                    .wraddress(img_wraddress[(i * FILTER_W + j + 1) * IMG_W_ADDR_WIDTH_PER_STRIPE - 1 : (i * FILTER_W + j) * IMG_W_ADDR_WIDTH_PER_STRIPE]),
+
+                    .wren(img_wren[i * FILTER_W + j])
+                );
             end
         end
 
-        // result buffer registers
         for (i = 0; i < RESULT_D; i = i + 1) begin
-            for (k = 0; k < RESULT_W; k = k + 1) begin                
-                for (j = 0; j < RESULT_H; j = j + 1) begin
-                    vc_EnReg #(DATA_WIDTH) result_reg
-                    (
-                        .clk(clk),
-                        .en(result_wren[(i * RESULT_W + k)] && (result_wraddress[(i * RESULT_W + k) * RESULT_H_ADDR_WIDTH +: RESULT_H_ADDR_WIDTH] == j)),
-                        .d(result_data_out[(i * RESULT_W + k) * DATA_WIDTH +: DATA_WIDTH]),
-                        .q(result[(i*RESULT_H*RESULT_W + j*RESULT_W + k)*DATA_WIDTH +: DATA_WIDTH])
-                    );
-                end
-            end
+            vc_sram_1r1w #(DATA_WIDTH, RESULT_W * RESULT_H) sram_result
+            (
+                .clk(clk),
+
+                .data_in(result_data_in[(i + 1) * DATA_WIDTH - 1 : i * DATA_WIDTH]),
+                .data_out(result_data_out[(i + 1) * DATA_WIDTH - 1 : i * DATA_WIDTH]),
+
+                .rdaddress(result_rdaddress[(i + 1) * RESULT_W_ADDR_WIDTH - 1 : i * RESULT_W_ADDR_WIDTH]),
+                .wraddress(result_wraddress[(i + 1) * RESULT_W_ADDR_WIDTH - 1 : i * RESULT_W_ADDR_WIDTH]),
+
+                .wren(result_wren[i])
+            );
         end
     endgenerate
 
-    {self.impl} #(DATA_WIDTH,IMG_W,IMG_H,IMG_D,FILTER_W,FILTER_H,RESULT_D,RESULT_D) conv_inst
+
+    {self.impl} #(DATA_WIDTH, IMG_W, IMG_H, IMG_D, FILTER_W, FILTER_H, RESULT_D, STRIDE_W, STRIDE_H, BUFFER_STAGES, TREE_BASE) 
+    conv_inst
     (
         .clk(clk),
         .reset(reset),
         .fil({fil_in}),
+
         .val_in(val_in),
         .rdy_in(rdy_in),
+
         .img_rdaddress(img_rdaddress),
-        .img_data_in(img_data_in),
+        .img_data_in(img_data_out),
+
         .result_wraddress(result_wraddress),
-        .result_data_out(result_data_out),
+        .result_data_out(result_data_in),
         .result_wren(result_wren)
     );
+
 endmodule
 '''
         return template

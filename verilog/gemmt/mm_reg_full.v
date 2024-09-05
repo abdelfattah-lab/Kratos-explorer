@@ -8,7 +8,8 @@ module mm_reg_full
     parameter DATA_WIDTH = 8,
     parameter ROW_NUM = 8,
     parameter COL_NUM = 8,
-    parameter LENGTH = 8
+    parameter LENGTH = 8,
+    parameter TREE_BASE = 2
 )(
     input clk,
     input reset,
@@ -36,7 +37,7 @@ module mm_reg_full
                     assign col_temp[(k+1)*DATA_WIDTH-1:k*DATA_WIDTH] = fil[(k*COL_NUM+j+1)*DATA_WIDTH-1:(k*COL_NUM+j)*DATA_WIDTH];
                 end
                 logic [DATA_WIDTH-1:0] res_temp;
-                multiply_core_evo #(DATA_WIDTH, LENGTH) cc_inst
+                multiply_core_evo #(DATA_WIDTH, LENGTH, TREE_BASE) cc_inst
                 (
                     .clk(clk),
                     .reset(reset),
@@ -51,7 +52,7 @@ module mm_reg_full
         end
     endgenerate
 
-    multiply_core_evo_chain #(8, LENGTH) cc_inst
+    multiply_core_evo_chain #(8, LENGTH, TREE_BASE) cc_inst
     (
         .clk(clk),
         .reset(reset),

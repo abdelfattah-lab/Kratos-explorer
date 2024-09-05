@@ -11,11 +11,11 @@ class GemmTRpDesign(StandardizedSdcDesign):
     def __init__(self, impl: str = 'mm_bram_parallel', module_dir: str = 'gemmt', wrapper_module_name: str = 'mm_bram_parallel_wrapper'):
         super().__init__(impl, module_dir, wrapper_module_name)
 
-    def get_name(self, data_width: int, row_num: int, col_num: int, length: int, constant_weight: bool = True, sparsity: float = 0.0, **kwargs):
+    def get_name(self, tree_base: int, data_width: int, row_num: int, col_num: int, length: int, constant_weight: bool = True, sparsity: float = 0.0, **kwargs):
         """
         Name generation 
         """
-        return f'i.{self.impl}_d.{data_width}_r.{row_num}_c.{col_num}_l.{length}_c.{constant_weight}_s.{sparsity}'
+        return f'i.{self.impl}_tb.{tree_base}_d.{data_width}_r.{row_num}_c.{col_num}_l.{length}_c.{constant_weight}_s.{sparsity}'
 
     def verify_params(self, params: dict[str, any]) -> dict[str, any]:
         """
@@ -86,27 +86,28 @@ project_close
 
         return template
     
-    def gen_wrapper(self, data_width, row_num, col_num, length, constant_weight, sparsity, **kwargs) -> str:
-        template_inputx = 'input   logic  [DATA_WIDTH*LENGTH*COL_NUM-1:0]        weights ,'
+    def gen_wrapper(self, tree_base, data_width, row_num, col_num, length, constant_weight, sparsity, **kwargs) -> str:
+        template_inputx = 'input   logic   [DATA_WIDTH*ROW_NUM*LENGTH-1:0]        weights,'
         if constant_weight:
             inputx = ''
             reset_seed()
             arr_str = generate_flattened_bit(data_width, length*col_num, sparsity)
-            constant_bits = f'localparam bit [DATA_WIDTH*LENGTH*COL_NUM-1:0] const_params = {arr_str};'
+            constant_bits = f'localparam bit [DATA_WIDTH*ROW_NUM*LENGTH-1:0] const_params = {arr_str};'
             x_in = 'const_params'
         else:
             inputx = template_inputx
             constant_bits = ''
             x_in = 'weights'
 
-        template = f'''`include "{self.module_dir}/{self.impl}.v"
-
+        template_top = f'''`include "{self.module_dir}/{self.impl}.v"
+`include "vc/vc_sram.v"
 module {self.wrapper_module_name}
 #(
     parameter DATA_WIDTH = {data_width},
     parameter ROW_NUM = {row_num},
     parameter COL_NUM = {col_num},
     parameter LENGTH = {length},
+    parameter TREE_BASE = {tree_base},
     // below are parameters not meant to be set manually
     parameter ROW_ADDR_WIDTH = $clog2(ROW_NUM),
     parameter COL_ADDR_WIDTH = $clog2(COL_NUM),
@@ -115,31 +116,73 @@ module {self.wrapper_module_name}
     input   logic                           clk,
     input   logic                           reset,
 
+    input   logic                           val_in,
+    output  logic                           rdy_in,
+
     {inputx}
 
-    input   logic   [DATA_WIDTH*ROW_NUM*LENGTH-1:0]        mat_in,
+    input   logic   [DATA_WIDTH*LENGTH-1:0]        src_data_in     ,
+    input   logic   [ROW_ADDR_WIDTH*LENGTH-1:0]    src_wraddr      ,
+    input   logic   [LENGTH-1:0]                   src_wr_en       ,
 
-    output  logic   [DATA_WIDTH*ROW_NUM*COL_NUM-1:0]        mat_out,
-
-    // opaque
-    input   logic    [7:0]                  opaque_in, 
-    output  logic    [7:0]                  opaque_out 
+    input   logic  [ROW_ADDR_WIDTH*COL_NUM-1:0]     result_rdaddr  ,
+    output  logic  [DATA_WIDTH*COL_NUM-1:0]         result_data_out
 );
 
-    {constant_bits}
 
-    {self.impl} #(DATA_WIDTH, ROW_NUM, COL_NUM, LENGTH) mm_reg_inst
+    {constant_bits}
+    logic   [DATA_WIDTH*LENGTH-1:0]        src_data_out;
+    logic   [ROW_ADDR_WIDTH*LENGTH-1:0]    src_rdaddr;
+
+    logic   [DATA_WIDTH*COL_NUM-1:0]        result_data_in;
+    logic   [ROW_ADDR_WIDTH*COL_NUM-1:0]    result_wraddr;
+    logic   [COL_NUM-1:0]                   result_wr_en;
+
+    genvar i;
+    generate
+        for (i = 0; i < LENGTH; i = i + 1) begin
+            vc_sram_1r1w #(DATA_WIDTH, ROW_NUM) src_sram_inst
+            (
+                .clk(clk),
+                .data_in(src_data_in[(i+1)*DATA_WIDTH-1:i*DATA_WIDTH]),
+                .data_out(src_data_out[(i+1)*DATA_WIDTH-1:i*DATA_WIDTH]),
+                .rdaddress(src_rdaddr[(i+1)*ROW_ADDR_WIDTH-1:i*ROW_ADDR_WIDTH]),
+                .wraddress(src_wraddr[(i+1)*ROW_ADDR_WIDTH-1:i*ROW_ADDR_WIDTH]),
+                .wren(src_wr_en[i])
+            );
+        end
+
+        for (i = 0; i < COL_NUM; i = i + 1) begin
+            vc_sram_1r1w #(DATA_WIDTH, ROW_NUM) result_sram_inst
+            (
+                .clk(clk),
+                .data_in(result_data_in[(i+1)*DATA_WIDTH-1:i*DATA_WIDTH]),
+                .data_out(result_data_out[(i+1)*DATA_WIDTH-1:i*DATA_WIDTH]),
+                .rdaddress(result_rdaddr[(i+1)*ROW_ADDR_WIDTH-1:i*ROW_ADDR_WIDTH]),
+                .wraddress(result_wraddr[(i+1)*ROW_ADDR_WIDTH-1:i*ROW_ADDR_WIDTH]),
+                .wren(result_wr_en[i])
+            );
+        end
+    endgenerate
+
+    {self.impl} #(DATA_WIDTH,ROW_NUM,COL_NUM,LENGTH,TREE_BASE) calc_inst
     (
         .clk(clk),
         .reset(reset),
-        .fil({x_in}),
-        .mat(mat_in),
-        .res(mat_out),
-        .opaque_in(opaque_in),
-        .opaque_out(opaque_out)
+
+        .val_in(val_in),
+        .rdy_in(rdy_in),
+
+        .weights({x_in}),
+
+        .row_data_in(src_data_out),
+        .row_rdaddr(src_rdaddr),
+
+        .row_data_out(result_data_in),
+        .row_wraddr(result_wraddr),
+        .row_wr_en(result_wr_en)
     );
-    
 endmodule
 '''
 
-        return template
+        return template_top
