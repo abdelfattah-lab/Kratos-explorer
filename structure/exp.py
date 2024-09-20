@@ -84,6 +84,7 @@ class Experiment(ParamsChecker, Hashable):
             self.process.wait()
             self.stdout_file.close()
             self.stderr_file.close()
+            self.process = None
         else:
             raise RuntimeError('Experiment is not running.')
         
