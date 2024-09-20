@@ -78,8 +78,8 @@ def run_vtr_denoised_v1(
     # Ensure parameters for post-processing are present
     if 'ble_count' not in variable_arch_params.keys():
         raise ValueError("This sequence requires the architecture to have 'ble_count' as a variable!")
-    if 'ble_count' not in x_axis:
-        x_axis.append('ble_count')
+    if 'ble_count' not in filter_params_new:
+        filter_params_new.append('ble_count')
     if 'cpd' not in filter_results:
         filter_results.append('cpd')
     if 'clb' not in filter_blocks:
