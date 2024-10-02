@@ -23,4 +23,7 @@ REQUIRED_KEYS_CONV2D_STRIDE = [*REQUIRED_KEYS_CONV2D, 'stride_w', 'stride_h']
 # GEMM
 REQUIRED_KEYS_GEMM = [*REQUIRED_KEYS_DESIGN, 'row_num', 'col_num', 'length']
 
+# Simple Unrolled
+REQUIRED_KEYS_SIMPLE_UNROLLED = ['data_width', 'const_weight']
+
 # --- End: Design
