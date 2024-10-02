@@ -13,6 +13,7 @@ class Experiment(ParamsChecker, Hashable):
     """
     {abstract}
     Experiment meant to be run by a structure.run.Runner.
+    Be sure to override the self.name variable during __init__() to define a short name for the Experiment class.
     """
 
     def __init__(self, arch: ArchFactory, design: Design, params: dict[str, dict[str, any]]) -> None:
@@ -45,6 +46,9 @@ class Experiment(ParamsChecker, Hashable):
         self.gcthread = None  # thread for garbage collection
         self.result = None  # result of the experiment
 
+        # variables
+        self.name = "exp" # should be overridden!
+
     def _setup_exp(self, defaults: dict[str, any], required_keys: list[str], clear_exp_dir: bool = False) -> None:
         """
         Sets up the experiment when needed, i.e., make folders and README.
@@ -61,7 +65,7 @@ class Experiment(ParamsChecker, Hashable):
          # make root and experiment directory
         self.root_dir = self.exp_params['root_dir']
         self.verilog_search_dir = self.exp_params['verilog_search_dir']
-        self.exp_dir = os.path.join(self.root_dir, f"{self.arch.get_name(**self.arch_params)}--{self.design.get_name(**self.design_params)}")
+        self.exp_dir = os.path.join(self.root_dir, f"{self.arch.get_name(**self.arch_params)}--{self.design.get_name(**self.design_params)}--{self.name}")
         if os.path.exists(self.exp_dir) and clear_exp_dir:
             # attempt folder removal
             shutil.rmtree(self.exp_dir, ignore_errors=True)

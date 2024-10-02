@@ -40,7 +40,10 @@ def extract_info_quartus(path='.'):
                 break
             if '; Fmax Summary' in line:
                 sta_rpt_file.readline()
-                sta_rpt_file.readline()
+                status = sta_rpt_file.readline()
+                if "No paths to report" in status:
+                    break
+
                 sta_rpt_file.readline()
                 freqs = sta_rpt_file.readline().strip().split()
                 fmax = float(freqs[1])  # fmax in MHz

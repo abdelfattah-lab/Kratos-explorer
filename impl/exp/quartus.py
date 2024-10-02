@@ -1,3 +1,5 @@
+from ...structure.arch import ArchFactory
+from ...structure.design import Design
 from structure.exp import Experiment
 from structure.consts.shared_defaults import DEFAULTS_EXP_QUARTUS
 from structure.consts.shared_requirements import REQUIRED_KEYS_EXP
@@ -7,6 +9,10 @@ from util.flow import start_dependent_process
 import os
 
 class QuartusExperiment(Experiment):
+    def __init__(self, arch: ArchFactory, design: Design, params: dict[str, dict[str, any]]) -> None:
+        super().__init__(arch, design, params)
+        self.name = 'quartus'
+
     def run(self) -> None:
         """
         Run on Quartus.
@@ -40,7 +46,7 @@ class QuartusExperiment(Experiment):
         self.process = start_dependent_process(cmd, stdout=self.stdout_file, stderr=self.stderr_file, cwd=self.exp_dir)
 
         # start GC thread
-        self._start_gc_thread(self._clean)
+        self._start_gc_thread(self._clean, ())
 
     def get_result(self, **kwargs) -> dict:
         self._preresult_check()

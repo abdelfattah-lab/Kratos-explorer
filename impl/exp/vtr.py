@@ -1,3 +1,5 @@
+from ...structure.arch import ArchFactory
+from ...structure.design import Design
 from structure.exp import Experiment
 from structure.consts.shared_defaults import DEFAULTS_EXP_VTR
 from structure.consts.shared_requirements import REQUIRED_KEYS_EXP
@@ -8,6 +10,10 @@ import os
 import subprocess
 
 class VtrExperiment(Experiment):
+    def __init__(self, arch: ArchFactory, design: Design, params: dict[str, dict[str, any]]) -> None:
+        super().__init__(arch, design, params)
+        self.name = 'vtr'
+
     """
     VTR implementation of an Experiment.
     """
