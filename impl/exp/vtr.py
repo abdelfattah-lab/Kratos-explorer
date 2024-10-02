@@ -22,6 +22,7 @@ class VtrExperiment(Experiment):
         seed: random seed for VTR
         allow_skipping: if True, then the experiment is skipped if the folder already exists with valid results
         adder_cin_global: tells VTR to connect the first cin of an adder/subtractor chain to (True) global GND/Vdd, or (False) a dummy adder. Default: False
+        soft_multiplier_adders: tells VTR to use cascading adder chains if True, else a compressor tree, to implement soft multiplication. Default: False
         avoid_mult: if True, then avoids using hard multipliers. Default: False
         force_denser_packing: if True, then force VPR to pack as tightly as possible. Default: False
         """
@@ -43,6 +44,7 @@ class VtrExperiment(Experiment):
         ending = self.exp_params['ending']
         seed = self.exp_params['seed']
         adder_cin_global = self.exp_params.get('adder_cin_global', False)
+        soft_multiplier_adders = self.exp_params.get('soft_multiplier_adders', False)
         avoid_mult = self.exp_params.get('avoid_mult', False)
         force_denser_packing = self.exp_params.get('force_denser_packing', False)
 
@@ -73,6 +75,8 @@ class VtrExperiment(Experiment):
                '-parser', 'system-verilog', '-top', self.design.wrapper_module_name, '-search', self.verilog_search_dir, '--seed', str(seed)]
         if adder_cin_global:
             cmd += ['-adder_cin_global'] # only works with self-modified fork: https://github.com/abdelfattah-lab/vtr-updated
+        if soft_multiplier_adders:
+            cmd += ['-soft_multiplier_adders'] # only works with self-modified fork: https://github.com/abdelfattah-lab/vtr-updated
         if avoid_mult:
             cmd += ['-min_hard_mult_size', '9999'] # arbitrarily large multiplier size
         if ending is not None:
@@ -117,16 +121,20 @@ class VtrExperiment(Experiment):
                 remove_list.append(possible)
 
         cmd = ['zip', '-r', 'largefile.zip'] + remove_list
-        zip_result = subprocess.run(cmd, cwd=output_temp_dir, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
-        if zip_result.returncode == 0:
-            for remove_file in remove_list:
-                remove_path = os.path.join(output_temp_dir, remove_file)
-                if os.path.exists(remove_path):
-                    os.remove(remove_path)
-        else:
+        try:
+            zip_result = subprocess.run(cmd, cwd=output_temp_dir, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+            if zip_result.returncode == 0:
+                for remove_file in remove_list:
+                    remove_path = os.path.join(output_temp_dir, remove_file)
+                    if os.path.exists(remove_path):
+                        os.remove(remove_path)
+            else:
+                print(f"Unable to perform zipping for: {output_temp_dir}")
+        except:
             print(f"Unable to perform zipping for: {output_temp_dir}")
-        
+
     def get_result(self, **kwargs) -> dict:
         """
         Get result of VTR run.
