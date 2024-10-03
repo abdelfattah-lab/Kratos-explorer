@@ -10,6 +10,9 @@ def extract_info_quartus(path='.'):
     alm_usage = -1
     fmax = -1.0
     rfmax = -1.0
+    lut_logic = {}
+    lut_rt = -1
+    lut_total = -1
 
     # if summary file exists
     # read file 'v1.fit.summary'
@@ -51,7 +54,45 @@ def extract_info_quartus(path='.'):
                 break
         sta_rpt_file.close()
 
-    return {'status': fit_successfull, 'alm': alm_usage, 'fmax': fmax, 'rfmax': rfmax}
+    # if place report file exists
+    #read file 'v1.fit.place.rpt'
+    place_rpt_path = os.path.join(path, 'v1.fit.place.rpt')
+    if os.path.exists(place_rpt_path):
+        place_rpt_file = open(place_rpt_path, 'r')
+        line = place_rpt_file.readline()
+        while line:
+            # Grab LUT usage
+            if 'Combinational ALUT usage for logic' in line:
+                    # read all LUT sizes
+                    while True:
+                        line = place_rpt_file.readline()
+                        lut_size_match = re.search(r"--\D*([\d,]+) input function\D*;\s*([\d,]+)", line) 
+                        if not lut_size_match:
+                            # read past all possible input function lines
+                            break
+
+                        # add size and count
+                        lut_size = int(lut_size_match.group(1).replace(',', ''))
+                        lut_count = int(lut_size_match.group(2).replace(',', ''))
+                        lut_logic[lut_size] = lut_count
+                    
+                    # read route-throughs
+                    lut_rt_match = re.search(r"Combinational ALUT usage for route-throughs\s*;\s*([d,]+)", line)
+                    if lut_rt_match:
+                        lut_rt = int(lut_rt_match.group(1).replace(',', ''))
+
+        if lut_rt >= 0 and len(lut_logic) > 0:
+            lut_total = lut_rt + sum(lut_logic.values())
+
+    return {
+        'status': fit_successfull, 
+        'alm': alm_usage, 
+        'fmax': fmax, 
+        'rfmax': rfmax, 
+        **{f"lut{size}": count for size, count in lut_logic}, 
+        'lut_rt': lut_rt,
+        'lut_total': lut_total
+    }
 
 
 def extract_info_vtr(path='.', extract_blocks_list=['clb', 'fle']) -> dict:

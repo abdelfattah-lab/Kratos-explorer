@@ -16,11 +16,12 @@ from impl.design.gemms import GemmSDesign
 from impl.design.simple_unrolled import SimpleUnrolledDesign
 
 from impl.exp.quartus import QuartusExperiment
+from impl.exp.vtr import VtrExperiment
 from structure.run import Runner
 
 import os.path as path
 
-DATA_WIDTH = 4
+DATA_WIDTH = 8
 BASE_PARAMS = {
     keys.KEY_EXP: {
         'verilog_search_dir': path.join(path.dirname(path.realpath(__file__)), 'verilog'),
@@ -67,13 +68,21 @@ DESIGN_LIST = [
 
 RUNNER = Runner()
 for design, params in DESIGN_LIST:
-    RUNNER.add_experiments(QuartusExperiment, BASE_ARCH, design, params)
+    RUNNER.add_experiments(
+        QuartusExperiment, # Quartus
+        # VtrExperiment, # VTR
+        BASE_ARCH, design, params
+    )
 
 for dir, df in RUNNER.run_all_threaded(
     verbose=True,
     desc='Quartus vs. VTR',
     num_parallel_tasks=16,
     filter_params=['const_weight'],
-    filter_results=['alm'],
+    # Quartus
+    filter_results=['alm', 'lut_total'],
+    # # VTR
+    # filter_results=['fle', 'lut'],
+    # result_kwargs=dict(extract_blocks_list=['lut']),
 ).items():
     df.to_csv(f"{dir.replace('/', '_')}_results.csv")
