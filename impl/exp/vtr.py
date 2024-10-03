@@ -1,5 +1,5 @@
-from ...structure.arch import ArchFactory
-from ...structure.design import Design
+from structure.arch import ArchFactory
+from structure.design import Design
 from structure.exp import Experiment
 from structure.consts.shared_defaults import DEFAULTS_EXP_VTR
 from structure.consts.shared_requirements import REQUIRED_KEYS_EXP
