@@ -340,40 +340,46 @@ def generate_random_matrix_4d(filter_num, depth, row_num, column_num, data_width
     return arr_str
 
 
-def generate_flattened_bit(data_width, total_num, sparsity, number=None):
+def generate_flattened_bit(data_width, total_num, sparsity):
     '''
     this method will return a bit string of length total_number * data_width, for example
     if data_width = 8, and total_number is 4, then it will return 32'hdeadbeef
-
-    currently only support data width of 4,8
     '''
+    assert data_width >= 2, "need a data width of at least 2 bits!"
+    assert total_num > 0, "need at least 1 weight!"
+    assert sparsity >= 0 and sparsity <= 1, "0 <= sparsity <= 1!"
 
+    # generate sparsity % zero weights, and the rest non-zero.
     params = np.zeros((total_num), dtype=int)
-    threshold = int(total_num * sparsity)
+    threshold = round(total_num * sparsity)
+    upper = pow(2, data_width)
     count = 0
     for i in range(total_num):
         count += 1
         if count > threshold:
-            params[i] = np.random.randint(1, pow(2, data_width)-1)
+            params[i] = np.random.randint(1, upper)
 
+    # shuffle into random positions.
     np.random.shuffle(params)
-    # print count of non zero elements
-    total_bit_length = total_num * data_width
-    result = str(total_bit_length) + "'h"
-    for n in params:
-        if data_width == 4:
-            result += format(n, 'x')
-        elif data_width == 8:
-            result += format(n, 'x').zfill(2)
-        else:
-            raise Exception("unsupported data width")
 
-    return result
+    # convert to hexadecimal string.
+    total_bit_length = total_num * data_width
+    result = ""
+    buffer = ""
+
+    for n in reversed(params): 
+        buffer = format(n, 'b').zfill(data_width) + buffer
+        while len(buffer) >= 4:
+            result = format(int(buffer[-4:], 2), 'x') + result
+            buffer = buffer[:-4]
+    
+    if len(buffer) > 0:
+        result = format(int(buffer, 2), 'x') + result
+    return f"{total_bit_length}'h{result}"
 
 
 def gen_long_constant_bits(length, sparsity, length_placeholder, bits_name='constfil'):
     # divide the long contstant string into multiple small one so parser will work, maximum bits per const is 8192. (the actual limit of parmys is 16384)
-    assert length % 4 == 0, "length must be multiple of 4"
     num_complete = length // 8192
     num_remain = length % 8192
     str_temp = 'localparam bit [{total_length}:0] const_fil_part_{i} = {arr_str};'
