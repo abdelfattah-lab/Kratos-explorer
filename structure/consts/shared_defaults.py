@@ -15,7 +15,10 @@ DEFAULTS_EXP_VTR = {
     'ending': None,
     'allow_skipping': False,
     'avoid_mult': True,
-    'force_denser_packing': False
+    'force_denser_packing': False,
+    'adder_cin_global': True,
+    'soft_multiplier_adders': False,
+    'compressor_tree_type': 'wallace',
 }
 
 DEFAULTS_EXP_QUARTUS = {

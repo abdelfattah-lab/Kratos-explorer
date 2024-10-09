@@ -46,8 +46,12 @@ class Experiment(ParamsChecker, Hashable):
         self.gcthread = None  # thread for garbage collection
         self.result = None  # result of the experiment
 
-        # variables
-        self.name = "exp" # should be overridden!
+    def get_name(self, **kwargs):
+        """
+        {abstract}
+        Get the name of this experiment based on its parameters.
+        """
+        self.raise_unimplemented("get_name")
 
     def _setup_exp(self, defaults: dict[str, any], required_keys: list[str], clear_exp_dir: bool = False) -> None:
         """
@@ -65,7 +69,7 @@ class Experiment(ParamsChecker, Hashable):
          # make root and experiment directory
         self.root_dir = self.exp_params['root_dir']
         self.verilog_search_dir = self.exp_params['verilog_search_dir']
-        self.exp_dir = os.path.join(self.root_dir, f"{self.arch.get_name(**self.arch_params)}--{self.design.get_name(**self.design_params)}--{self.name}")
+        self.exp_dir = os.path.join(self.root_dir, f"{self.arch.get_name(**self.arch_params)}--{self.design.get_name(**self.design_params)}--{self.get_name(**self.exp_params)}")
         if os.path.exists(self.exp_dir) and clear_exp_dir:
             # attempt folder removal
             shutil.rmtree(self.exp_dir, ignore_errors=True)

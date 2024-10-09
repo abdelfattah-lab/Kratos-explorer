@@ -10,14 +10,24 @@ import os
 import subprocess
 
 class VtrExperiment(Experiment):
-    def __init__(self, arch: ArchFactory, design: Design, params: dict[str, dict[str, any]]) -> None:
-        super().__init__(arch, design, params)
-        self.name = 'vtr'
-
     """
     VTR implementation of an Experiment.
     """
 
+    def get_name(self, adder_cin_global: bool, avoid_mult: bool, soft_multiplier_adders: bool, compressor_tree_type: str, **kwargs):
+        name = "vtr"
+        if adder_cin_global:
+            name += "_acg"
+        if avoid_mult:
+            name += "_am"
+        name += "_c."
+        if soft_multiplier_adders:
+            name += "0"
+        else:
+            name += compressor_tree_type
+
+        return name
+        
     def run(self) -> None:
         """
         Run on VTR.
@@ -51,6 +61,7 @@ class VtrExperiment(Experiment):
         seed = self.exp_params['seed']
         adder_cin_global = self.exp_params.get('adder_cin_global', False)
         soft_multiplier_adders = self.exp_params.get('soft_multiplier_adders', False)
+        compressor_tree_type = self.exp_params['compressor_tree_type']
         avoid_mult = self.exp_params.get('avoid_mult', False)
         force_denser_packing = self.exp_params.get('force_denser_packing', False)
 
@@ -78,11 +89,17 @@ class VtrExperiment(Experiment):
             raise RuntimeError('VTR_ROOT not found in environment variables; unable to execute VTR.')
         vtr_script_path = os.path.join(vtr_root, 'vtr_flow/scripts/run_vtr_flow.py')
         cmd = ['python', vtr_script_path, wrapper_file_name, arch_file_name,
-               '-parser', 'system-verilog', '-top', self.design.wrapper_module_name, '-search', self.verilog_search_dir, '--seed', str(seed)]
+               '-parser', 'system-verilog', 
+               '-top', self.design.wrapper_module_name, 
+               '-search', self.verilog_search_dir, 
+               '--seed', str(seed),
+            ]
         if adder_cin_global:
             cmd += ['-adder_cin_global'] # only works with self-modified fork: https://github.com/abdelfattah-lab/vtr-updated
-        if soft_multiplier_adders:
+        if soft_multiplier_adders or compressor_tree_type == 'cascade':
             cmd += ['-soft_multiplier_adders'] # only works with self-modified fork: https://github.com/abdelfattah-lab/vtr-updated
+        elif compressor_tree_type != 'cascade':
+            cmd += ['-compressor_tree_type', compressor_tree_type] # only works with self-modified fork: https://github.com/abdelfattah-lab/vtr-updated
         if avoid_mult:
             cmd += ['-min_hard_mult_size', '9999'] # arbitrarily large multiplier size
         if ending is not None:
