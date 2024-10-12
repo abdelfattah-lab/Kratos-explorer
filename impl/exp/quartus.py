@@ -11,7 +11,9 @@ import os
 class QuartusExperiment(Experiment):
     def __init__(self, arch: ArchFactory, design: Design, params: dict[str, dict[str, any]]) -> None:
         super().__init__(arch, design, params)
-        self.name = 'quartus'
+        
+    def get_name(self, **kwargs):
+        return "quartus"
 
     def run(self) -> None:
         """
