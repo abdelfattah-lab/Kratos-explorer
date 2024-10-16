@@ -139,7 +139,7 @@ module {self.wrapper_module_name}
     {inputfil}
     input   logic   [DATA_WIDTH*IMG_D*IMG_W-1:0]            lines_in,
 
-    output  logic   [DATA_WIDTH*RESULT_D*RESULT_W-1:0]      lines_out,
+    output  logic   [DATA_WIDTH*4*RESULT_D*RESULT_W-1:0]      lines_out,
 
     input   logic   [7:0]                       opaque_in,
     output  logic   [7:0]                       opaque_out

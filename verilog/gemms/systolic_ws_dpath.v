@@ -24,12 +24,12 @@ module systolic_ws_dpath
     // output  logic   [ROW_ADDR_WIDTH-1:0]    row_rdaddr      [0:LENGTH-1],
     input   logic   [DATA_WIDTH-1:0]        row_data_in     [0:LENGTH-1],
     // to result sram
-    output  logic   [DATA_WIDTH-1:0]        row_data_out    [0:COL_NUM-1]
+    output  logic   [DATA_WIDTH*4-1:0]      row_data_out    [0:COL_NUM-1]
     // output  logic   [ROW_ADDR_WIDTH-1:0]    row_wraddr      [0:COL_NUM-1],
     // output  logic                           row_wr_en       [0:COL_NUM-1]
 );
 
-    logic   [DATA_WIDTH-1:0]    norths  [0:COL_NUM-1];
+    logic   [DATA_WIDTH*4-1:0]    norths  [0:COL_NUM-1];
 
     genvar i;
     generate

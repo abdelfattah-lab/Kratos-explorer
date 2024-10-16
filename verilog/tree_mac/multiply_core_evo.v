@@ -18,7 +18,7 @@ module multiply_core_evo_withaddr
 
     input   logic   [DATA_WIDTH*DATA_LENGTH-1:0]        row ,
     input   logic   [DATA_WIDTH*DATA_LENGTH-1:0]        col ,
-    output  logic   [DATA_WIDTH-1:0]        sum_out,
+    output  logic   [DATA_WIDTH*4-1:0]        sum_out,
 
     input   logic   [ADDRESS_WIDTH_I-1:0]   addr_i_in,
     input   logic   [ADDRESS_WIDTH_K-1:0]   addr_k_in,
@@ -67,6 +67,7 @@ module multiply_core_evo_withaddr
     );
 endmodule
 
+// treating all numbers as unsigned. TODO: add signed support?
 module multiply_core_evo
 #(
     parameter int DATA_WIDTH = 8,
@@ -81,15 +82,16 @@ module multiply_core_evo
     input   logic   [DATA_WIDTH*DATA_LENGTH-1:0]        col ,
 
 
-    output  logic   [DATA_WIDTH-1:0]        sum_out
+    output  logic   [DATA_WIDTH*4-1:0]        sum_out
 );
-
+    localparam int MUL_WIDTH = DATA_WIDTH * 2;
+    localparam int SUM_WIDTH = DATA_WIDTH * 4;
     localparam int LEVELS = clog_base(DATA_LENGTH, TREE_BASE);
     localparam int LEASTPOWLEN = TREE_BASE ** LEVELS;
     localparam int TREE_DIV = TREE_BASE - 1;
     localparam int LASTI = (TREE_BASE * LEASTPOWLEN - 1) / TREE_DIV - 1;
 
-    logic   [DATA_WIDTH-1:0]        inner_result [0:LASTI];
+    logic   [SUM_WIDTH-1:0]        inner_result [0:LASTI];
 
     assign sum_out = inner_result[LASTI];
     // logic   [DATA_WIDTH-1:0]        row_buf [0:DATA_LENGTH-1];
@@ -125,12 +127,12 @@ module multiply_core_evo
             );
 
             // multiply row and col to temp
-            logic   [DATA_WIDTH-1:0]    temp_mul;
-            logic   [DATA_WIDTH-1:0]    temp_res;
+            logic   [MUL_WIDTH-1:0]    temp_mul;
+            logic   [MUL_WIDTH-1:0]    temp_res;
             assign temp_mul = row_buf_temp * col_buf_temp;
             assign inner_result[i] = temp_res;
             
-            vc_reg #(DATA_WIDTH) mul_reg (
+            vc_reg #(MUL_WIDTH) mul_reg (
                 .d(temp_mul),
                 .q(temp_res),
                 .clk(clk)
@@ -145,9 +147,9 @@ module multiply_core_evo
         // tree structure adder
         for (k = LEVELS; k > 0; k = k - 1) begin
             for (j = 0; j < TREE_BASE ** (k - 1); j = j + 1) begin
-                logic  [DATA_WIDTH-1:0]    partial_sum [0:TREE_DIV];
-                logic  [DATA_WIDTH-1:0]    temp_sum;
-                logic  [DATA_WIDTH-1:0]    temp_res;
+                logic  [SUM_WIDTH-1:0]    partial_sum [0:TREE_DIV];
+                logic  [SUM_WIDTH-1:0]    temp_sum;
+                logic  [SUM_WIDTH-1:0]    temp_res;
                 
                 assign partial_sum[0] = inner_result[int'(TREE_BASE * (TREE_BASE ** LEVELS - TREE_BASE ** k) / (TREE_BASE - 1)) + j * TREE_BASE];
                 for (i = 1; i < TREE_BASE; i=i+1) begin
@@ -157,7 +159,7 @@ module multiply_core_evo
                 assign temp_sum = partial_sum[TREE_BASE-1];
                 assign inner_result[int'((TREE_BASE * LEASTPOWLEN - TREE_BASE ** k) / TREE_DIV) + j] = temp_res;
 
-                vc_reg #(DATA_WIDTH) add_reg (
+                vc_reg #(SUM_WIDTH) add_reg (
                     .d(temp_sum),
                     .q(temp_res),
                     .clk(clk)

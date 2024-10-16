@@ -65,7 +65,7 @@ module conv_bram_sr_fast_dpath
     input   logic    [DATA_WIDTH*IMG_D*FILTER_L-1:0]   img_data_in ,
 
     // to result image
-    output  logic    [DATA_WIDTH-1:0]               result_data_out,
+    output  logic    [DATA_WIDTH*4-1:0]             result_data_out,
     output  logic    [RESULT_RAM_ADDR_WIDTH-1:0]    result_wraddress,
     output  logic                                   result_wren
 );

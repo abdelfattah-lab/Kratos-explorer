@@ -28,7 +28,7 @@ module mm_bram_parallel
     output  logic  [ROW_ADDR_WIDTH*LENGTH-1:0]     row_rdaddr,
     input   logic  [DATA_WIDTH*LENGTH-1:0]         row_data_in,
     // to result sram
-    output  logic   [DATA_WIDTH*COL_NUM-1:0]        row_data_out,
+    output  logic   [DATA_WIDTH*4*COL_NUM-1:0]        row_data_out,
     output  logic   [ROW_ADDR_WIDTH*COL_NUM-1:0]    row_wraddr,
     output  logic   [COL_NUM-1:0]                   row_wr_en    
 );

@@ -38,7 +38,7 @@ module conv_bram_1d_dpath
     output  logic                                   last_val,
     // result
     output  logic   [RESULT_RAM_ADDR_WIDTH-1:0]     result_wraddr,
-    output  logic   [DATA_WIDTH-1:0]                result_wrdata,
+    output  logic   [DATA_WIDTH*4-1:0]                result_wrdata,
     output  logic                                   result_wren
 );
 

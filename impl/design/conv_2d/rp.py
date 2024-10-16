@@ -164,8 +164,9 @@ module {self.wrapper_module_name}
     output  logic                                           rdy_in,
     {inputfil}
     input   logic   [IMG_D*IMG_H*IMG_W*DATA_WIDTH-1:0]             img,
-    output  logic   [RESULT_D*RESULT_H*RESULT_W*DATA_WIDTH-1:0]    result 
+    output  logic   [RESULT_D*RESULT_H*RESULT_W*DATA_WIDTH*4-1:0]  result 
 );
+    localparam RES_WIDTH = DATA_WIDTH * 4;
 
 {constant_bits} 
     
@@ -173,7 +174,7 @@ module {self.wrapper_module_name}
     logic    [IMG_D*IMG_W*DATA_WIDTH-1:0]                       img_data_in;
     // results
     logic    [RESULT_D*RESULT_W*RESULT_H_ADDR_WIDTH-1:0]        result_wraddress;
-    logic    [RESULT_D*RESULT_W*DATA_WIDTH-1:0]                 result_data_out;
+    logic    [RESULT_D*RESULT_W*RES_WIDTH-1:0]                  result_data_out;
     logic    [RESULT_D*RESULT_W-1:0]                            result_wren;
 
     genvar i, j, k;
@@ -203,12 +204,12 @@ module {self.wrapper_module_name}
         for (i = 0; i < RESULT_D; i = i + 1) begin
             for (k = 0; k < RESULT_W; k = k + 1) begin                
                 for (j = 0; j < RESULT_H; j = j + 1) begin
-                    vc_EnReg #(DATA_WIDTH) result_reg
+                    vc_EnReg #(RES_WIDTH) result_reg
                     (
                         .clk(clk),
                         .en(result_wren[(i * RESULT_W + k)] && (result_wraddress[(i * RESULT_W + k) * RESULT_H_ADDR_WIDTH +: RESULT_H_ADDR_WIDTH] == j)),
-                        .d(result_data_out[(i * RESULT_W + k) * DATA_WIDTH +: DATA_WIDTH]),
-                        .q(result[(i*RESULT_H*RESULT_W + j*RESULT_W + k)*DATA_WIDTH +: DATA_WIDTH])
+                        .d(result_data_out[(i * RESULT_W + k) * RES_WIDTH +: RES_WIDTH]),
+                        .q(result[(i*RESULT_H*RESULT_W + j*RESULT_W + k)*RES_WIDTH +: RES_WIDTH])
                     );
                 end
             end

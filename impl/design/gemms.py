@@ -130,15 +130,15 @@ module {self.wrapper_module_name}
     input   logic                           src_wr_en       [0:LENGTH-1],
 
     input   logic  [ROW_ADDR_WIDTH-1:0]     result_rdaddr   [0:COL_NUM-1],
-    output  logic  [DATA_WIDTH-1:0]         result_data_out [0:COL_NUM-1]
+    output  logic  [DATA_WIDTH*4-1:0]       result_data_out [0:COL_NUM-1]
 );
-
+    localparam RES_WIDTH = DATA_WIDTH * 4;
 
     {constant_bits}
     logic   [DATA_WIDTH-1:0]        src_data_out    [0:LENGTH-1];
     logic   [ROW_ADDR_WIDTH-1:0]    src_rdaddr      [0:LENGTH-1];
 
-    logic   [DATA_WIDTH-1:0]        result_data_in  [0:COL_NUM-1];
+    logic   [RES_WIDTH-1:0]         result_data_in  [0:COL_NUM-1];
     logic   [ROW_ADDR_WIDTH-1:0]    result_wraddr   [0:COL_NUM-1];
     logic                           result_wr_en    [0:COL_NUM-1];
 
@@ -157,7 +157,7 @@ module {self.wrapper_module_name}
         end
 
         for (i = 0; i < COL_NUM; i = i + 1) begin
-            vc_sram_1r1w #(DATA_WIDTH, ROW_NUM) result_sram_inst
+            vc_sram_1r1w #(RES_WIDTH, ROW_NUM) result_sram_inst
             (
                 .clk(clk),
                 .data_in(result_data_in[i]),

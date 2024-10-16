@@ -156,18 +156,18 @@ module {self.wrapper_module_name}
 
     // result
     input   logic   [RESULT_RAM_ADDR_WIDTH*RESULT_D-1:0]     result_rdaddr,
-    output  logic   [DATA_WIDTH*RESULT_D-1:0]                result_rddata
+    output  logic   [DATA_WIDTH*4*RESULT_D-1:0]              result_rddata
 );
-
+    localparam RES_WIDTH = DATA_WIDTH*4;
     {constant_bits} 
 
     // inner wire
-            logic   [IMG_RAM_ADDR_WIDTH*RESULT_D-1:0]        img_rdaddr    ;
-            logic   [DATA_WIDTH*RESULT_D-1:0]                img_rddata    ;
+    logic   [IMG_RAM_ADDR_WIDTH*RESULT_D-1:0]        img_rdaddr    ;
+    logic   [DATA_WIDTH*RESULT_D-1:0]                img_rddata    ;
 
-            logic   [RESULT_RAM_ADDR_WIDTH*RESULT_D-1:0]     result_wraddr;
-            logic   [DATA_WIDTH*RESULT_D-1:0]                result_wrdata;
-            logic   [RESULT_D-1:0]                           result_wren  ;
+    logic   [RESULT_RAM_ADDR_WIDTH*RESULT_D-1:0]     result_wraddr;
+    logic   [RES_WIDTH*RESULT_D-1:0]                 result_wrdata;
+    logic   [RESULT_D-1:0]                           result_wren  ;
 
 
     {self.impl} #(DATA_WIDTH,IMG_W,IMG_D,FILTER_L,RESULT_D,STRIDE_W,TREE_BASE) conv_1d_inst
@@ -205,14 +205,14 @@ module {self.wrapper_module_name}
         end
 
         for(i = 0; i < RESULT_D; i = i + 1) begin
-            vc_sram_1r1w #(DATA_WIDTH, RESULT_W) result_sram
+            vc_sram_1r1w #(RES_WIDTH, RESULT_W) result_sram
             (
                 .clk(clk),
                 
-                .data_out(result_rddata[(i+1)*DATA_WIDTH-1:i*DATA_WIDTH]),
+                .data_out(result_rddata[(i+1)*RES_WIDTH-1:i*RES_WIDTH]),
                 .rdaddress(result_rdaddr[(i+1)*RESULT_RAM_ADDR_WIDTH-1:i*RESULT_RAM_ADDR_WIDTH]),
 
-                .data_in(result_wrdata[(i+1)*DATA_WIDTH-1:i*DATA_WIDTH]),
+                .data_in(result_wrdata[(i+1)*RES_WIDTH-1:i*RES_WIDTH]),
                 .wraddress(result_wraddr[(i+1)*RESULT_RAM_ADDR_WIDTH-1:i*RESULT_RAM_ADDR_WIDTH]),
                 .wren(result_wren[i:i])
             );

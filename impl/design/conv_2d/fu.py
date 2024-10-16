@@ -159,7 +159,7 @@ module {self.wrapper_module_name}
     // image
     input   logic    [IMG_D*IMG_H*IMG_W*DATA_WIDTH-1:0]                     img_data_in,
     // results
-    output  logic    [RESULT_D*RESULT_H*RESULT_W*DATA_WIDTH-1:0]            result_data_out,
+    output  logic    [RESULT_D*RESULT_H*RESULT_W*DATA_WIDTH*4-1:0]          result_data_out,
     // opaque
     input   logic    [7:0]                                  opaque_in, 
     output  logic    [7:0]                                  opaque_out 

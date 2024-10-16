@@ -31,10 +31,11 @@ module mm_bram_parallel_dpath
     input   logic   [DATA_WIDTH*LENGTH*COL_NUM-1:0]        weights,
 
     // to result sram
-    output  logic   [DATA_WIDTH*COL_NUM-1:0]        row_data_out,
+    output  logic   [DATA_WIDTH*4*COL_NUM-1:0]        row_data_out,
     output  logic   [ROW_ADDR_WIDTH*COL_NUM-1:0]    row_wraddr,
     output  logic   [COL_NUM-1:0]                   row_wr_en 
 );
+    localparam SUM_WIDTH = DATA_WIDTH * 4;
 
     genvar i,j,k;
 
@@ -64,7 +65,7 @@ module mm_bram_parallel_dpath
                 .addr_k_in(),
                 .val_in(dpath_sum_en),
 
-                .sum_out(row_data_out[(i+1)*DATA_WIDTH-1:i*DATA_WIDTH]),
+                .sum_out(row_data_out[(i+1)*SUM_WIDTH-1:i*SUM_WIDTH]),
                 .addr_i_out(row_wraddr[(i+1)*ROW_ADDR_WIDTH-1:i*ROW_ADDR_WIDTH]),
                 .addr_k_out(),
                 .val_out(row_wr_en[i])

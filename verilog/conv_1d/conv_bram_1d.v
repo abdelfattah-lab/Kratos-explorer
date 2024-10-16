@@ -36,9 +36,10 @@ module conv_bram_1d
     input   logic   [DATA_WIDTH*IMG_D-1:0]                      img_rddata,
     // result
     output  logic   [RESULT_RAM_ADDR_WIDTH*RESULT_D-1:0]        result_wraddr,
-    output  logic   [DATA_WIDTH*RESULT_D-1:0]                   result_wrdata,
+    output  logic   [DATA_WIDTH*4*RESULT_D-1:0]                   result_wrdata,
     output  logic   [RESULT_D-1:0]                              result_wren
 );
+    localparam RES_WIDTH = DATA_WIDTH*4;
 
     logic                                   dpath_sr_wren;
     logic   [RESULT_RAM_ADDR_WIDTH-1:0]     dpath_result_wraddr;
@@ -79,7 +80,7 @@ module conv_bram_1d
                 .last_val(last_val[i:i]),
 
                 .result_wraddr(result_wraddr[(i+1)*RESULT_RAM_ADDR_WIDTH-1:i*RESULT_RAM_ADDR_WIDTH]),
-                .result_wrdata(result_wrdata[(i+1)*DATA_WIDTH-1:i*DATA_WIDTH]),
+                .result_wrdata(result_wrdata[(i+1)*RES_WIDTH-1:i*RES_WIDTH]),
                 .result_wren(result_wren[i:i])
             );
         end

@@ -56,10 +56,10 @@ module conv_bram_sr_fast
     input   logic    [DATA_WIDTH*IMG_D*FILTER_W-1:0]                       img_data_in,
     // results
     output  logic    [RESULT_RAM_ADDR_WIDTH*RESULT_D-1:0]            result_wraddress,
-    output  logic    [DATA_WIDTH*RESULT_D-1:0]                       result_data_out ,
+    output  logic    [DATA_WIDTH*4*RESULT_D-1:0]                     result_data_out ,
     output  logic    [RESULT_D-1:0]                                  result_wren     
 );
-
+    localparam RES_WIDTH + DATA_WIDTH * 4;
     localparam FILTER_L = FILTER_W;
     localparam FILTER_L_ADDR_WIDTH = FILTER_W_ADDR_WIDTH;
 
@@ -116,7 +116,7 @@ module conv_bram_sr_fast
 
             .img_data_in(img_data_in),
 
-            .result_data_out(result_data_out[(k+1) * DATA_WIDTH - 1:k * DATA_WIDTH]),
+            .result_data_out(result_data_out[(k+1) * RES_WIDTH - 1:k * RES_WIDTH]),
             .result_wraddress(result_wraddress[(k+1) * RESULT_RAM_ADDR_WIDTH - 1:k * RESULT_RAM_ADDR_WIDTH]),
             .result_wren(result_wren[k:k])
         );

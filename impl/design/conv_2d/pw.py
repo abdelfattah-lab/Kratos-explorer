@@ -172,15 +172,15 @@ module {self.wrapper_module_name}
 
     // results
     input   logic    [RESULT_RAM_ADDR_WIDTH*RESULT_D-1:0]            result_rdaddress,
-    output  logic    [DATA_WIDTH*RESULT_D-1:0]                       result_data_out  
+    output  logic    [DATA_WIDTH*4*RESULT_D-1:0]                     result_data_out  
 );
-
+    localparam RES_WIDTH = DATA_WIDTH * 4;
 
     logic    [IMG_RAM_ADDR_WIDTH_PER_STRIPE*IMG_D*FILTER_W-1:0]        img_rdaddress  ;
     logic    [DATA_WIDTH*IMG_D*FILTER_W-1:0]                           img_data_out   ;
 
     logic    [RESULT_RAM_ADDR_WIDTH*RESULT_D-1:0]                result_wraddress;
-    logic    [DATA_WIDTH*RESULT_D-1:0]                           result_data_in  ;
+    logic    [RES_WIDTH*RESULT_D-1:0]                            result_data_in  ;
     logic    [RESULT_D-1:0]                                      result_wren     ;
 
 {constant_bits} 
@@ -206,12 +206,12 @@ module {self.wrapper_module_name}
         end
 
         for (i = 0; i < RESULT_D; i = i + 1) begin
-            vc_sram_1r1w #(DATA_WIDTH, RESULT_W * RESULT_H) sram_result
+            vc_sram_1r1w #(RES_WIDTH, RESULT_W * RESULT_H) sram_result
             (
                 .clk(clk),
 
-                .data_in(result_data_in[(i + 1) * DATA_WIDTH - 1 : i * DATA_WIDTH]),
-                .data_out(result_data_out[(i + 1) * DATA_WIDTH - 1 : i * DATA_WIDTH]),
+                .data_in(result_data_in[(i + 1) * RES_WIDTH - 1 : i * RES_WIDTH]),
+                .data_out(result_data_out[(i + 1) * RES_WIDTH - 1 : i * RES_WIDTH]),
 
                 .rdaddress(result_rdaddress[(i + 1) * RESULT_W_ADDR_WIDTH - 1 : i * RESULT_W_ADDR_WIDTH]),
                 .wraddress(result_wraddress[(i + 1) * RESULT_W_ADDR_WIDTH - 1 : i * RESULT_W_ADDR_WIDTH]),

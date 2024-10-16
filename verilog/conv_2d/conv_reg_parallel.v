@@ -63,9 +63,10 @@ module conv_reg_parallel
     input   logic    [IMG_D*IMG_W*DATA_WIDTH-1:0]                       img_data_in,
     // results
     output  logic    [RESULT_D*RESULT_W*RESULT_H_ADDR_WIDTH-1:0]        result_wraddress,
-    output  logic    [RESULT_D*RESULT_W*DATA_WIDTH-1:0]                 result_data_out,
+    output  logic    [RESULT_D*RESULT_W*DATA_WIDTH*4-1:0]               result_data_out,
     output  logic    [RESULT_D*RESULT_W-1:0]                            result_wren
 );
+    localparam RES_WIDTH = DATA_WIDTH*4;
 
     typedef enum logic [$clog2(5)-1:0] {
         STATE_IDLE, // waiting for start
@@ -129,7 +130,7 @@ module conv_reg_parallel
                     .addr_k_in(),
                     .val_in(result_val_ctrl_delayed),
 
-                    .sum_out(result_data_out[(i * RESULT_W + j) * DATA_WIDTH +: DATA_WIDTH]),
+                    .sum_out(result_data_out[(i * RESULT_W + j) * RES_WIDTH +: RES_WIDTH]),
                     .addr_i_out(result_wraddress[(i * RESULT_W + j) * RESULT_H_ADDR_WIDTH +: RESULT_H_ADDR_WIDTH]),
                     .addr_k_out(),
                     .val_out(result_wren[i * RESULT_W + j])
