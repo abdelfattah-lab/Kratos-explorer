@@ -59,7 +59,7 @@ module conv_bram_sr_fast
     output  logic    [DATA_WIDTH*4*RESULT_D-1:0]                     result_data_out ,
     output  logic    [RESULT_D-1:0]                                  result_wren     
 );
-    localparam RES_WIDTH + DATA_WIDTH * 4;
+    localparam RES_WIDTH = DATA_WIDTH * 4;
     localparam FILTER_L = FILTER_W;
     localparam FILTER_L_ADDR_WIDTH = FILTER_W_ADDR_WIDTH;
 
