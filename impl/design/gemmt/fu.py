@@ -2,6 +2,7 @@ from structure.design import StandardizedSdcDesign
 from util.flow import reset_seed, generate_flattened_bit
 from structure.consts.shared_defaults import DEFAULTS_TCL, DEFAULTS_WRAPPER
 from structure.consts.shared_requirements import REQUIRED_KEYS_GEMM
+from structure.consts.quartus import DEVICE_FAMILY, DEVICE_NAME, TURN_OFF_DSPS
 
 class GemmTFuDesign(StandardizedSdcDesign):
     """
@@ -34,10 +35,12 @@ class GemmTFuDesign(StandardizedSdcDesign):
         Optional arguments (defaults to DEFAULTS_TCL):
         output_dir:str, reports output directory
         parallel_processors_num:int, number of parallel processors
+        execute_flow_type: 'compile' or 'implement' (prime only)
         """
         kwargs = self.autofill_defaults(DEFAULTS_TCL, kwargs)
         output_dir = kwargs['output_dir']
         parallel_processors_num = kwargs['parallel_processors_num']
+        execute_flow_type = kwargs['execute_flow_type']
         template = f'''# load packages
 load_package flow
 
@@ -45,8 +48,8 @@ load_package flow
 project_new -revision v1 -overwrite unrolled_mm_reg_full
 
 # device
-set_global_assignment -name FAMILY "Arria 10"
-set_global_assignment -name DEVICE 10AX115H1F34I1SG
+set_global_assignment -name FAMILY "{DEVICE_FAMILY}"
+set_global_assignment -name DEVICE {DEVICE_NAME}
 
 # misc
 set_global_assignment -name PROJECT_OUTPUT_DIRECTORY {output_dir}
@@ -75,9 +78,11 @@ set_instance_assignment -name VIRTUAL_PIN ON -to opaque_out[*]
 # effort level
 set_global_assignment -name OPTIMIZATION_MODE "HIGH PERFORMANCE EFFORT"
 
+# turn DSPs off
+{TURN_OFF_DSPS}
+
 # run compilation
-#execute_flow -compile
-execute_flow -implement
+execute_flow -{execute_flow_type}
 
 
 # close project

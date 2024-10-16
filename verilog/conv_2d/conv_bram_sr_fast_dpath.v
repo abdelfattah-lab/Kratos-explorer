@@ -74,7 +74,7 @@ module conv_bram_sr_fast_dpath
 
     logic [FILTER_L-1:0] dpath_wren_dup;
     generate
-        for (i = 0; i < FILTER_L; i = i + 1) begin
+        for (i = 0; i < FILTER_L; i = i + 1) begin : filter_l_block
             assign dpath_wren_dup[i] = dpath_wren;
         end
     endgenerate
@@ -84,13 +84,15 @@ module conv_bram_sr_fast_dpath
     logic [DATA_WIDTH*IMG_D*FILTER_L*FILTER_L-1:0] sr_data_out_flattened;
 
     generate
-        for (i = 0; i < IMG_D; i = i + 1) begin
+        for (i = 0; i < IMG_D; i = i + 1) begin : img_d_block
             logic    [DATA_WIDTH*FILTER_L-1:0]               img_data_regularized;
-            logic    [DATA_WIDTH*FILTER_L*FILTER_L-1:0]       sr_data_out;
+            logic    [DATA_WIDTH*FILTER_L*FILTER_L-1:0]      sr_data_out;
+            logic    [DATA_WIDTH-1:0]                        img_data_in_packed [0:FILTER_L-1],
+                                                             img_data_regularized_packed [0:FILTER_L-1];
             vc_rotation_mux_back_comb #(DATA_WIDTH, FILTER_L) data_in_rotation_mux
             (
-                .data_in(img_data_in[(i+1)*DATA_WIDTH*FILTER_L-1:i*DATA_WIDTH*FILTER_L]),
-                .data_out(img_data_regularized),
+                .data_in(img_data_in_packed),
+                .data_out(img_data_regularized_packed),
                 .addr_in(dpath_rotation_offset)
             );
             vc_shiftregisters_2d_ar #(DATA_WIDTH, FILTER_L, FILTER_L) sr_2d
@@ -108,6 +110,11 @@ module conv_bram_sr_fast_dpath
             
             assign sr_data_out_flattened[(i+1)*DATA_WIDTH*FILTER_L*FILTER_L-1:i*DATA_WIDTH*FILTER_L*FILTER_L] = sr_data_out;
 
+            // convert unpacked to packed img_data_in, regularized.
+            for (j = 0; j < FILTER_L; j=j+1) begin : pack_img_data_block
+                assign img_data_in_packed[j] = img_data_in[i*FILTER_L + j*DATA_WIDTH +: DATA_WIDTH];
+                assign img_data_regularized[j*DATA_WIDTH +: DATA_WIDTH] = img_data_regularized_packed[j];
+            end
         end
     endgenerate
 

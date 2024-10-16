@@ -28,11 +28,11 @@ module mm_reg_full
 
 
     generate
-        for (i = 0; i < ROW_NUM; i = i + 1) begin
-            for (j = 0; j < COL_NUM; j = j + 1) begin
+        for (i = 0; i < ROW_NUM; i = i + 1) begin : row_block
+            for (j = 0; j < COL_NUM; j = j + 1) begin : col_block
                 logic [DATA_WIDTH*LENGTH-1:0] row_temp;
                 logic [DATA_WIDTH*LENGTH-1:0] col_temp;           
-                for (k = 0; k < LENGTH; k = k + 1) begin
+                for (k = 0; k < LENGTH; k = k + 1) begin : weight_block
                     assign row_temp[(k+1)*DATA_WIDTH-1:k*DATA_WIDTH] = mat[(i*LENGTH+k+1)*DATA_WIDTH-1:(i*LENGTH+k)*DATA_WIDTH];
                     assign col_temp[(k+1)*DATA_WIDTH-1:k*DATA_WIDTH] = fil[(k*COL_NUM+j+1)*DATA_WIDTH-1:(k*COL_NUM+j)*DATA_WIDTH];
                 end

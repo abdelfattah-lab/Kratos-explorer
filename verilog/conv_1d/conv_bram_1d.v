@@ -62,10 +62,10 @@ module conv_bram_1d
 
     genvar i;
     generate
-        for(i = 0; i < IMG_D; i = i + 1) begin
+        for(i = 0; i < IMG_D; i = i + 1) begin : img_d_block
             assign img_rdaddr[(i+1)*IMG_RAM_ADDR_WIDTH-1:i*IMG_RAM_ADDR_WIDTH] = img_rdaddr_dup;
         end
-        for(i = 0; i < FILTER_K; i = i + 1) begin
+        for(i = 0; i < FILTER_K; i = i + 1) begin : filter_k_block
             conv_bram_1d_dpath #(DATA_WIDTH,IMG_W,IMG_D,FILTER_L,RESULT_D, STRIDE_W, TREE_BASE) conv_1d_dpath_inst
             (
                 .clk(clk),

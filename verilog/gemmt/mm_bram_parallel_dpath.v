@@ -44,15 +44,15 @@ module mm_bram_parallel_dpath
 
     generate
         // transpose the weights so it can be indexed by column
-        for(i = 0;i < LENGTH; i = i +1) begin
-            for(j = 0;j < COL_NUM; j = j +1) begin
+        for(i = 0;i < LENGTH; i = i +1) begin : length_block
+            for(j = 0;j < COL_NUM; j = j +1) begin : col_num_block
                 assign weights_t_flattened[j][(i+1)*DATA_WIDTH-1:i*DATA_WIDTH] = weights[(i*COL_NUM+j+1)*DATA_WIDTH-1:(i*COL_NUM+j)*DATA_WIDTH];
             end
         end
 
 
         // create multiply cores
-        for (i =0; i < COL_NUM; i = i + 1) begin
+        for (i =0; i < COL_NUM; i = i + 1) begin : col_num_block
             multiply_core_evo_withaddr #(DATA_WIDTH, LENGTH , ROW_ADDR_WIDTH, 1, TREE_BASE) mul_core_inst
             (
                 .clk(clk),

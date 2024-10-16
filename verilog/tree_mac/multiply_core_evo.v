@@ -99,7 +99,7 @@ module multiply_core_evo
     genvar j;
     generate
         // generate multiplier for each element from row and col, and store the result in result[0:DATA_LENGTH-1]
-        for (i = 0; i < DATA_LENGTH; i = i + 1) begin
+        for (i = 0; i < DATA_LENGTH; i = i + 1) begin : mul_block
             // buffer one cycle for input row and col
             logic [DATA_WIDTH-1:0]        row_buf_temp;
             logic [DATA_WIDTH-1:0]        col_buf_temp;
@@ -138,19 +138,19 @@ module multiply_core_evo
         end
         
         // complete the rest of the inner_result with 0
-        for (i = DATA_LENGTH; i < LEASTPOWLEN; i = i + 1) begin
+        for (i = DATA_LENGTH; i < LEASTPOWLEN; i = i + 1) begin : zero_pad_block
             assign inner_result[i] = 0;
         end
 
         // tree structure adder
-        for (k = LEVELS; k > 0; k = k - 1) begin
-            for (j = 0; j < TREE_BASE ** (k - 1); j = j + 1) begin
+        for (k = LEVELS; k > 0; k = k - 1) begin : adder_tree_level_block
+            for (j = 0; j < TREE_BASE ** (k - 1); j = j + 1) begin : adder_tree_row_block
                 logic  [DATA_WIDTH-1:0]    partial_sum [0:TREE_DIV];
                 logic  [DATA_WIDTH-1:0]    temp_sum;
                 logic  [DATA_WIDTH-1:0]    temp_res;
                 
                 assign partial_sum[0] = inner_result[int'(TREE_BASE * (TREE_BASE ** LEVELS - TREE_BASE ** k) / (TREE_BASE - 1)) + j * TREE_BASE];
-                for (i = 1; i < TREE_BASE; i=i+1) begin
+                for (i = 1; i < TREE_BASE; i=i+1) begin : adder_tree_partial_sum_block
                     assign partial_sum[i] = partial_sum[i-1] + inner_result[int'(TREE_BASE * (TREE_BASE ** LEVELS - TREE_BASE ** k) / (TREE_BASE - 1)) + j * TREE_BASE + i];
                 end
 

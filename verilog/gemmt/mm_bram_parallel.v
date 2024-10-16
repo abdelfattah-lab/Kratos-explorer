@@ -45,7 +45,7 @@ module mm_bram_parallel
     // duplicate row_rd_addr
     genvar i;
     generate
-        for (i = 0; i < LENGTH; i = i + 1) begin
+        for (i = 0; i < LENGTH; i = i + 1) begin : length_block
             assign row_rdaddr[(i+1)*ROW_ADDR_WIDTH-1:i*ROW_ADDR_WIDTH] = rdaddr;
         end
     endgenerate

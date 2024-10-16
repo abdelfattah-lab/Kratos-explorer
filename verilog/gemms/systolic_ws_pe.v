@@ -64,19 +64,19 @@ module systolic_ws_pe_array
     genvar i, j;
     generate
         // assign west input and east output
-        for (i = 0; i < ROW_NUM; i = i + 1) begin
+        for (i = 0; i < ROW_NUM; i = i + 1) begin : row_num_block1
             assign we_wires[i][0] = wests[i];
             assign easts[i] = we_wires[i][COL_NUM];
         end
         // assign north input and south output
-        for (j = 0; j < COL_NUM; j = j + 1) begin
+        for (j = 0; j < COL_NUM; j = j + 1) begin : col_num_block1
             assign ns_wires[0][j] = norths[j];
             assign souths[j] = ns_wires[ROW_NUM][j];
         end
 
         // create the systolic array
-        for (i = 0; i < ROW_NUM; i = i + 1) begin
-            for (j = 0; j < COL_NUM; j = j + 1) begin
+        for (i = 0; i < ROW_NUM; i = i + 1) begin : row_num_block2
+            for (j = 0; j < COL_NUM; j = j + 1) begin : col_num_block2
                 systolic_ws_pe #(DATA_WIDTH) spe
                 (
                     .clk(clk),

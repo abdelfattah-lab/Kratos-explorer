@@ -61,19 +61,24 @@ module conv_reg_full
     genvar resd, resh, resw, i, j, k, l;
     // fully pipelined, generate multiply cores for each result
     generate
-        for (resd = 0; resd < RESULT_D; resd = resd + 1) begin
-            for (resh = 0; resh < RESULT_H; resh = resh + 1) begin
-                for (resw = 0; resw < RESULT_W; resw = resw + 1) begin
+        for (resd = 0; resd < RESULT_D; resd = resd + 1) begin : result_d_block
+            for (resh = 0; resh < RESULT_H; resh = resh + 1) begin : result_h_block
+                for (resw = 0; resw < RESULT_W; resw = resw + 1) begin : result_w_block
                     // instantiate a multiply core
                     logic  [DATA_WIDTH-1:0]   input_data_flattened [0:data_length_per_filter-1];
                     logic  [DATA_WIDTH-1:0]   filter_data_flattened [0:data_length_per_filter-1];
+
+                    
+                    logic   [DATA_WIDTH * data_length_per_filter - 1:0] input_data_flattened_row;
+                    logic   [DATA_WIDTH * data_length_per_filter - 1:0] filter_data_flattened_col;
+
                     multiply_core_evo_withaddr #(DATA_WIDTH, data_length_per_filter, 1,1, TREE_BASE) multiply_cores
                     (
                         .clk(clk),
                         .reset(reset),
 
-                        .row(input_data_flattened),
-                        .col(filter_data_flattened),
+                        .row(input_data_flattened_row),
+                        .col(filter_data_flattened_col),
 
                         .addr_i_in(),
                         .addr_k_in(),
@@ -85,13 +90,19 @@ module conv_reg_full
                         .val_out()
                     );
                     // connecting flattened wire
-                    for(i = 0; i < IMG_D; i = i + 1) begin
-                        for(j = 0; j < FILTER_H; j = j + 1) begin
-                            for(k = 0; k < FILTER_W; k = k + 1) begin
+                    for(i = 0; i < IMG_D; i = i + 1) begin : img_d_block
+                        for(j = 0; j < FILTER_H; j = j + 1) begin : filter_h_block
+                            for(k = 0; k < FILTER_W; k = k + 1) begin : filter_w_block
                                 assign input_data_flattened[i * FILTER_H * FILTER_W + j * FILTER_W + k] = img_data_in[(i * IMG_H * IMG_W + (resh * STRIDE_H + j) * IMG_W + resw * STRIDE_W + k) * DATA_WIDTH +: DATA_WIDTH];
                                 assign filter_data_flattened[i * FILTER_H * FILTER_W + j * FILTER_W + k] = fil[(resd * IMG_D * FILTER_H * FILTER_W + i * FILTER_H * FILTER_W + j * FILTER_W + k) * DATA_WIDTH +: DATA_WIDTH];
                             end
                         end
+                    end
+
+                    // connect flattened wires to row/col
+                    for (i = 0; i < data_length_per_filter; i = i + 1) begin : compress_rowcol_block
+                        assign input_data_flattened_row[i * DATA_WIDTH +: DATA_WIDTH] = input_data_flattened[i];
+                        assign filter_data_flattened_col[i * DATA_WIDTH +: DATA_WIDTH] = filter_data_flattened[i];
                     end
                 end
             end

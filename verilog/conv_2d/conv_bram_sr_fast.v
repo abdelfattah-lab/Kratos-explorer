@@ -75,11 +75,11 @@ module conv_bram_sr_fast
 
     genvar i,j;
     // assign input address
-    for (i = 0; i < IMG_D; i = i + 1) begin
-
+    generate
+        for (i = 0; i < IMG_D; i = i + 1) begin : img_d_block
             assign img_rdaddress[(i+1)*FILTER_L*IMG_RAM_ADDR_WIDTH_PER_STRIPE-1:i*FILTER_L*IMG_RAM_ADDR_WIDTH_PER_STRIPE] = img_rdaddr;
- 
-    end
+        end
+    endgenerate
 
     conv_bram_sr_fast_ctrl #(DATA_WIDTH,IMG_W,IMG_H,IMG_D,FILTER_L,FILTER_K,STRIDE_W,STRIDE_H) conv_bram_sr_fast_ctrl_inst (
         .clk(clk),
@@ -99,7 +99,7 @@ module conv_bram_sr_fast
 
     genvar k;
     generate
-        for (k = 0; k < FILTER_K; k = k + 1) begin
+        for (k = 0; k < FILTER_K; k = k + 1) begin : filter_k_block
         conv_bram_sr_fast_dpath #(DATA_WIDTH,IMG_W,IMG_H,IMG_D,FILTER_L,FILTER_K,STRIDE_W,STRIDE_H, TREE_BASE) conv_bram_sr_fast_dpath_inst (
             .clk(clk),
             .reset(reset),

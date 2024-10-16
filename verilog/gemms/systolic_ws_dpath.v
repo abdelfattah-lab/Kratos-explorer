@@ -33,7 +33,7 @@ module systolic_ws_dpath
 
     genvar i;
     generate
-        for (i = 0; i < COL_NUM; i = i + 1) begin
+        for (i = 0; i < COL_NUM; i = i + 1) begin : col_num_block
             assign norths[i] = 0;
         end
     endgenerate

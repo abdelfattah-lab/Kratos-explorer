@@ -26,70 +26,103 @@ def extract_info_quartus(path='.'):
             fitter_status: str = status_match.group(1)
             if 'success' in fitter_status.lower():
                 fit_successfull = True
-                alm_match = re.search(r"Logic utilization \(in ALMs\) : ([\d,]+) \/ ([\d,]+)", fit_summary)
-                if alm_match:
-                    alm_usage = int(alm_match.group(1).replace(',', ''))
-                else:
-                    alm_usage = -1
 
-    # if time analysis file exists
-    # read file 'v1.sta.rpt'
-    sta_rpt_path = os.path.join(path, 'v1.sta.rpt')
-    if os.path.exists(sta_rpt_path):
-        sta_rpt_file = open(sta_rpt_path, 'r')
-        while True:
-            line = sta_rpt_file.readline()
-            if not line:
-                break
-            if '; Fmax Summary' in line:
-                sta_rpt_file.readline()
-                status = sta_rpt_file.readline()
-                if "No paths to report" in status:
+    if fit_successfull:
+        # if time analysis file exists
+        # read file 'v1.sta.rpt'
+        sta_rpt_path = os.path.join(path, 'v1.sta.rpt')
+        if os.path.exists(sta_rpt_path):
+            sta_rpt_file = open(sta_rpt_path, 'r')
+            while True:
+                line = sta_rpt_file.readline()
+                if not line:
                     break
+                if '; Fmax Summary' in line:
+                    sta_rpt_file.readline()
+                    status = sta_rpt_file.readline()
+                    if "No paths to report" in status:
+                        break
 
-                sta_rpt_file.readline()
-                freqs = sta_rpt_file.readline().strip().split()
-                fmax = float(freqs[1])  # fmax in MHz
-                rfmax = float(freqs[4])  # restricted fmax in MHz
-                break
-        sta_rpt_file.close()
+                    sta_rpt_file.readline()
+                    freqs = sta_rpt_file.readline().strip().split()
+                    fmax = float(freqs[1])  # fmax in MHz
+                    rfmax = float(freqs[4])  # restricted fmax in MHz
+                    break
+            sta_rpt_file.close()
 
-    # if place report file exists
-    #read file 'v1.fit.place.rpt'
-    place_rpt_path = os.path.join(path, 'v1.fit.place.rpt')
-    if os.path.exists(place_rpt_path):
-        place_rpt_file = open(place_rpt_path, 'r')
-        line = place_rpt_file.readline()
-        while line:
-            # Grab LUT usage
-            if 'Combinational ALUT usage for logic' in line:
-                    # read all LUT sizes
-                    while True:
-                        line = place_rpt_file.readline()
-                        lut_size_match = re.search(r"--\D*([\d,]+) input function\D*;\s*([\d,]+)", line) 
-                        if not lut_size_match:
-                            # read past all possible input function lines
-                            break
+        # if fit report file exists
+        #read file 'v1.fit.rpt'
+        fit_rpt_path = os.path.join(path, 'v1.fit.rpt')
+        if os.path.exists(fit_rpt_path):
+            place_rpt_file = open(fit_rpt_path, 'rb') # read in bytes because there might be special non-utf8 characters (quite stupid)
+            
+            # information changes based on edition
+            quartus_edition = 'pro'
 
-                        # add size and count
-                        lut_size = int(lut_size_match.group(1).replace(',', ''))
-                        lut_count = int(lut_size_match.group(2).replace(',', ''))
-                        lut_logic[lut_size] = lut_count
-                    
-                    # read route-throughs
-                    lut_rt_match = re.search(r"Combinational ALUT usage for route-throughs\s*;\s*([d,]+)", line)
-                    if lut_rt_match:
-                        lut_rt = int(lut_rt_match.group(1).replace(',', ''))
+            # dictionaries for identification
+            alut_usage_search = {
+                'pro': 'Combinational ALUT usage for logic',
+                'standard': 'Combinational ALUT usage by number of inputs',
+            }
+            alm_search = {
+                'pro': 'Logic utilization (ALMs needed / total ALMs on device)',
+                'standard': 'ALMs:  partially or completely used',
+            }
 
-        if lut_rt >= 0 and len(lut_logic) > 0:
-            lut_total = lut_rt + sum(lut_logic.values())
+            line = place_rpt_file.readline()
+            while line:
+                try:
+                    line = str(line)
+                except:
+                    line = place_rpt_file.readline()
+                    continue
+            
+                # Grab Quartus edition
+                if "Quartus Prime Version" in line:
+                    edition_match = re.search(r"\s([a-zA-Z]+)\sEdition", line)
+                    if edition_match:
+                        quartus_edition = edition_match.group(1).lower()
+
+                # Grab LUT usage
+                if alut_usage_search[quartus_edition] in line:
+                        # read all LUT sizes
+                        while True:
+                            line = str(place_rpt_file.readline())
+                            lut_size_match = re.search(r"--\D*([\d,]+) input function\D*;\s*([\d,]+)", line) 
+                            if not lut_size_match:
+                                # read past all possible input function lines
+                                break
+
+                            # add size and count
+                            lut_size = int(lut_size_match.group(1).replace(',', ''))
+                            lut_count = int(lut_size_match.group(2).replace(',', ''))
+                            lut_logic[lut_size] = lut_count
+                        
+                        if quartus_edition == 'pro':
+                            # read route-throughs
+                            lut_rt_match = re.search(r"Combinational ALUT usage for route-throughs\s*;\s*([d,]+)", line)
+                            if lut_rt_match:
+                                lut_rt = int(lut_rt_match.group(1).replace(',', ''))
+                        else:
+                            lut_rt = 0
+                
+                # Grab ALM count
+                if alm_search[quartus_edition] in line:
+                    alm_match = re.search(r"([\d,]+)\s*\/\s*[\d,]+", line)
+                    if alm_match:
+                        alm_usage = int(alm_match.group(1).replace(',', ''))
+
+                line = place_rpt_file.readline()
+
+            if lut_rt >= 0 and len(lut_logic) > 0:
+                lut_total = lut_rt + sum(lut_logic.values())
 
     return {
         'status': fit_successfull, 
         'alm': alm_usage, 
         'fmax': fmax, 
         'rfmax': rfmax, 
-        **{f"lut{size}": count for size, count in lut_logic}, 
+        **{f"lut{size}": count for size, count in lut_logic.items()}, 
         'lut_rt': lut_rt,
         'lut_total': lut_total
     }

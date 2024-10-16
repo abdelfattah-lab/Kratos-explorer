@@ -3,6 +3,10 @@ from util.flow import reset_seed, gen_long_constant_bits
 from structure.consts.shared_defaults import DEFAULTS_TCL, DEFAULTS_WRAPPER_CONV
 from structure.consts.shared_requirements import REQUIRED_KEYS_CONV2D_STRIDE
 
+from structure.consts.quartus import DEVICE_FAMILY, DEVICE_NAME, TURN_OFF_DSPS
+
+import math
+
 class Conv2dPwDesign(StandardizedSdcDesign):
     """
     Conv-2D Pixel-wise design.
@@ -35,10 +39,12 @@ class Conv2dPwDesign(StandardizedSdcDesign):
         Optional arguments (defaults to DEFAULTS_TCL):
         output_dir:str, reports output directory
         parallel_processors_num:int, number of parallel processors
+        execute_flow_type: 'compile' or 'implement' (prime only)
         """
         kwargs = self.autofill_defaults(DEFAULTS_TCL, kwargs)
         output_dir = kwargs['output_dir']
         parallel_processors_num = kwargs['parallel_processors_num']
+        execute_flow_type = kwargs['execute_flow_type']
         template = f'''# load packages
 load_package flow
 
@@ -46,8 +52,8 @@ load_package flow
 project_new -revision v1 -overwrite unrolled_conv_bram_sr_fast
 
 # device
-set_global_assignment -name FAMILY "Arria 10"
-set_global_assignment -name DEVICE 10AX115H1F34I1SG
+set_global_assignment -name FAMILY "{DEVICE_FAMILY}"
+set_global_assignment -name DEVICE {DEVICE_NAME}
 
 # misc
 set_global_assignment -name PROJECT_OUTPUT_DIRECTORY {output_dir}
@@ -88,9 +94,11 @@ set_instance_assignment -name VIRTUAL_PIN ON -to result_wren[*]
 # effort level
 set_global_assignment -name OPTIMIZATION_MODE "HIGH PERFORMANCE EFFORT"
 
+# turn DSPs off
+{TURN_OFF_DSPS}
+
 # run compilation
-#execute_flow -compile
-execute_flow -implement
+execute_flow -{execute_flow_type}
 
 
 # close project
@@ -188,8 +196,8 @@ module {self.wrapper_module_name}
     genvar i;
     genvar j;
     generate
-        for (i = 0; i < IMG_D; i = i + 1) begin
-            for (j = 0; j < FILTER_W; j = j + 1) begin
+        for (i = 0; i < IMG_D; i = i + 1) begin : img_d_block
+            for (j = 0; j < FILTER_W; j = j + 1) begin : filter_w_block
                 vc_sram_1r1w #(DATA_WIDTH, IMG_W * IMG_H / FILTER_K) sram_img
                 (
                     .clk(clk),
@@ -197,15 +205,15 @@ module {self.wrapper_module_name}
                     .data_in(img_data_in[(i * FILTER_W + j + 1) * DATA_WIDTH - 1 : (i * FILTER_W + j) * DATA_WIDTH]),
                     .data_out(img_data_out[(i * FILTER_W + j + 1) * DATA_WIDTH - 1 : (i * FILTER_W + j) * DATA_WIDTH]),
 
-                    .rdaddress(img_rdaddress[(i * FILTER_W + j + 1) * IMG_W_ADDR_WIDTH_PER_STRIPE - 1 : (i * FILTER_W + j) * IMG_W_ADDR_WIDTH_PER_STRIPE]),
-                    .wraddress(img_wraddress[(i * FILTER_W + j + 1) * IMG_W_ADDR_WIDTH_PER_STRIPE - 1 : (i * FILTER_W + j) * IMG_W_ADDR_WIDTH_PER_STRIPE]),
+                    .rdaddress(img_rdaddress[(i * FILTER_W + j + 1) * IMG_RAM_ADDR_WIDTH_PER_STRIPE - 1 : (i * FILTER_W + j) * IMG_RAM_ADDR_WIDTH_PER_STRIPE]),
+                    .wraddress(img_wraddress[(i * FILTER_W + j + 1) * IMG_RAM_ADDR_WIDTH_PER_STRIPE - 1 : (i * FILTER_W + j) * IMG_RAM_ADDR_WIDTH_PER_STRIPE]),
 
                     .wren(img_wren[i * FILTER_W + j])
                 );
             end
         end
 
-        for (i = 0; i < RESULT_D; i = i + 1) begin
+        for (i = 0; i < RESULT_D; i = i + 1) begin : result_d_block
             vc_sram_1r1w #(DATA_WIDTH, RESULT_W * RESULT_H) sram_result
             (
                 .clk(clk),

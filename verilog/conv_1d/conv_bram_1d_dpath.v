@@ -48,7 +48,7 @@ module conv_bram_1d_dpath
     genvar i, j, k;
     generate
         // assign duplicated enable signal
-        for(i = 0; i < IMG_D; i = i + 1) begin
+        for(i = 0; i < IMG_D; i = i + 1) begin : img_d_block
             assign en_dup[i:i] = dpath_sr_wren;
         end
     endgenerate

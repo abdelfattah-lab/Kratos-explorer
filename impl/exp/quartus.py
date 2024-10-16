@@ -32,7 +32,7 @@ class QuartusExperiment(Experiment):
         # generate tcl/sdc files
         tcl_file_name = 'flow.tcl'
         with open(os.path.join(self.exp_dir, tcl_file_name), 'w') as tcl_file:
-            tcl_file.write(self.design.gen_tcl(wrapper_file_name, **self.design_params))
+            tcl_file.write(self.design.gen_tcl(wrapper_file_name, search_path=self.exp_params['verilog_search_dir'], execute_flow_type=self.exp_params['execute_flow_type'], **self.design_params))
         sdc_file_name = 'flow.sdc'
         with open(os.path.join(self.exp_dir, sdc_file_name), 'w') as sdc_file:
             sdc_file.write(self.design.gen_sdc(**self.design_params))

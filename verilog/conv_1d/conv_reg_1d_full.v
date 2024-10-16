@@ -42,13 +42,13 @@ module conv_reg_1d_full
     genvar i, j, k, l;
     generate
         // create multiply core
-        for (i = 0; i < RESULT_D; i = i + 1) begin
-            for (j = 0; j < RESULT_W; j = j + 1) begin
+        for (i = 0; i < RESULT_D; i = i + 1) begin : result_d_block
+            for (j = 0; j < RESULT_W; j = j + 1) begin : result_w_block
                 logic  [DATA_WIDTH*mul_length-1:0]    weight_flattened;
                 logic  [DATA_WIDTH*mul_length-1:0]    input_flattened;
                 // connect the flattened wire
-                for (k = 0; k < IMG_D; k = k + 1) begin
-                    for (l = 0; l < FILTER_L; l = l + 1) begin 
+                for (k = 0; k < IMG_D; k = k + 1) begin : img_d_block
+                    for (l = 0; l < FILTER_L; l = l + 1) begin : filter_l_block 
                         assign weight_flattened[(k * FILTER_L + l + 1) * DATA_WIDTH-1:(k * FILTER_L + l) * DATA_WIDTH] = weight[(i * IMG_D * FILTER_L + k * FILTER_L + l +1) * DATA_WIDTH-1:(i * IMG_D * FILTER_L + k * FILTER_L + l) * DATA_WIDTH];
                         assign input_flattened[(k * FILTER_L + l + 1) * DATA_WIDTH-1:(k * FILTER_L + l) * DATA_WIDTH] = lines_in[(k * IMG_W + j * STRIDE_W + l + 1) * DATA_WIDTH-1:(k * IMG_W + j * STRIDE_W + l) * DATA_WIDTH];
                     end

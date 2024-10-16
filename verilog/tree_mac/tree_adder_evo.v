@@ -42,7 +42,7 @@ module tree_adder_evo
     genvar k;
     genvar j;
     generate
-        for (i = 0; i < DATA_LENGTH; i = i + 1) begin
+        for (i = 0; i < DATA_LENGTH; i = i + 1) begin : data_length_block
             // register for storing input data
             vc_reg #(DATA_WIDTH) input_reg (
                 .d(nums[(i+1)*DATA_WIDTH-1:i*DATA_WIDTH]),
@@ -51,12 +51,12 @@ module tree_adder_evo
             );
         end
 
-        for (i = DATA_LENGTH; i < LEAST2POWLEN; i = i + 1) begin
+        for (i = DATA_LENGTH; i < LEAST2POWLEN; i = i + 1) begin : least2powlen_block
             assign inner_result[i] = 0;
         end
 
-        for (k = LEAST2POWLEN; k > 1; k = k / 2) begin
-            for (j = 0; j < k; j = j + 2) begin
+        for (k = LEAST2POWLEN; k > 1; k = k / 2) begin : adder_tree_block
+            for (j = 0; j < k; j = j + 2) begin : adder_tree_row_block
                 logic  [DATA_WIDTH-1:0]    temp_a;
                 assign temp_a = inner_result[2 * LEAST2POWLEN - 2 * k + j] + inner_result[2 * LEAST2POWLEN - 2 * k + j + 1];
                 logic  [DATA_WIDTH-1:0]    temp_sum;
@@ -89,7 +89,7 @@ module tree_adder_evo
     assign val_out      = val_chain[TOTAL_STAGES];
 
     generate
-        for (i = 0; i < $clog2(DATA_LENGTH)+EXTRA_ALIGN_STAGE; i = i + 1) begin
+        for (i = 0; i < $clog2(DATA_LENGTH)+EXTRA_ALIGN_STAGE; i = i + 1) begin : align_block
             vc_reg #(ADDRESS_WIDTH_I) addr_i_reg (
                 .d(addr_i_chain[(i+1)*ADDRESS_WIDTH_I-1:i*ADDRESS_WIDTH_I]),
                 .q(addr_i_chain[(i+2)*ADDRESS_WIDTH_I-1:(i+1)*ADDRESS_WIDTH_I]),

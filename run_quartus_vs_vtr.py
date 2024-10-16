@@ -27,6 +27,7 @@ BASE_PARAMS = {
         'verilog_search_dir': path.join(path.dirname(path.realpath(__file__)), 'verilog'),
         'allow_skipping': True,
         'adder_cin_global': True,
+        'execute_flow_type': 'compile',
         # ... additional Experiment.run() parameters
     },
     keys.KEY_ARCH: {

@@ -24,11 +24,13 @@ DEFAULTS_EXP_VTR = {
 DEFAULTS_EXP_QUARTUS = {
     **DEFAULTS_EXP,
     'output_dir': 'outputs',
+    'execute_flow_type': 'implement',
 }
 
 DEFAULTS_TCL = {
     'output_dir': 'output',
-    'parallel_processors_num': 4
+    'parallel_processors_num': 4,
+    'execute_flow_type': 'implement',
 }
 
 # Wrapper defaults
