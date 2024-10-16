@@ -1333,7 +1333,7 @@ def gen_carry_chain_links(ble_count, mux_stride=1):
     if ble_count > 1:
         mux_ins_strs = []
         for x in range(1, ble_count):
-          is_mux = x % mux_stride == 0
+          is_mux = x % mux_stride == 0 if mux_stride > 0 else False
           mux_ins_strs.append(f"""<{'mux' if is_mux else 'direct'} name="cin{x}" input="{'clb.cin ' if is_mux else ''}fle[{x-1}:{x-1}].cout" output="fle[{x}:{x}].cin"/>""")
           mux_ins = '\n'.join(mux_ins_strs)
 
