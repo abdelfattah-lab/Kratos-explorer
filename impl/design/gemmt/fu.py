@@ -125,7 +125,7 @@ module {self.wrapper_module_name}
 
     input   logic   [DATA_WIDTH*ROW_NUM*LENGTH-1:0]        mat_in,
 
-    output  logic   [DATA_WIDTH*ROW_NUM*COL_NUM-1:0]        mat_out,
+    output  logic   [DATA_WIDTH*4*ROW_NUM*COL_NUM-1:0]        mat_out,
 
     // opaque
     input   logic    [7:0]                  opaque_in, 

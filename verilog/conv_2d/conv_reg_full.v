@@ -49,12 +49,12 @@ module conv_reg_full
     // image
     input   logic    [IMG_D*IMG_H*IMG_W*DATA_WIDTH-1:0]                     img_data_in,
     // results
-    output  logic    [RESULT_D*RESULT_H*RESULT_W*DATA_WIDTH-1:0]            result_data_out,
+    output  logic    [RESULT_D*RESULT_H*RESULT_W*DATA_WIDTH*4-1:0]          result_data_out,
     // opaque
     input   logic    [7:0]                                                  opaque_in, 
     output  logic    [7:0]                                                  opaque_out 
 );
-
+    localparam RES_WIDTH = DATA_WIDTH * 4;
     localparam data_length_per_filter = FILTER_W * FILTER_H * IMG_D;
 
 
@@ -84,7 +84,7 @@ module conv_reg_full
                         .addr_k_in(),
                         .val_in(),
 
-                        .sum_out(result_data_out[(resd * RESULT_H * RESULT_W + resh * RESULT_W + resw) * DATA_WIDTH +: DATA_WIDTH]),
+                        .sum_out(result_data_out[(resd * RESULT_H * RESULT_W + resh * RESULT_W + resw) * RES_WIDTH +: RES_WIDTH]),
                         .addr_i_out(),
                         .addr_k_out(),
                         .val_out()

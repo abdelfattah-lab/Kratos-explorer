@@ -31,12 +31,12 @@ module conv_reg_1d_full
 
     input   logic   [DATA_WIDTH*IMG_D*IMG_W-1:0]            lines_in,
 
-    output  logic   [DATA_WIDTH*RESULT_D*RESULT_W-1:0]      lines_out,
+    output  logic   [DATA_WIDTH*4*RESULT_D*RESULT_W-1:0]      lines_out,
 
     input   logic   [7:0]                       opaque_in,
     output  logic   [7:0]                       opaque_out
 );
-
+    localparam RES_WIDTH = DATA_WIDTH*4;
     localparam mul_length = FILTER_L * IMG_D;
 
     genvar i, j, k, l;
@@ -60,7 +60,7 @@ module conv_reg_1d_full
                     .reset(reset),
                     .row(input_flattened),
                     .col(weight_flattened),
-                    .sum_out(lines_out[(i*RESULT_W + j + 1) * DATA_WIDTH - 1 : (i*RESULT_W + j) * DATA_WIDTH])
+                    .sum_out(lines_out[(i*RESULT_W + j + 1) * RES_WIDTH - 1 : (i*RESULT_W + j) * RES_WIDTH])
                 );
             end
         end

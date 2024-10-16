@@ -3,6 +3,7 @@
 // each cycle, it takes one input from north and one input from west, and do the following thins
 // south <= north + weight * west
 // east  <= west
+// for weight, west = n-bit wide, then north, south has to be (n * 2) * 2 = 4n-bit wide
 `ifndef __SYSTOLIC_WS_PE_V__
 `define __SYSTOLIC_WS_PE_V__
 
@@ -14,23 +15,16 @@ module systolic_ws_pe
     input   logic                       clk,
     input   logic                       reset, // reset not used, only for pin compatibility
 
-    input   logic   [DATA_WIDTH-1:0]    north,
-    input   logic   [DATA_WIDTH-1:0]    west,
+    input   logic   [DATA_WIDTH*4-1:0]    north,
+    input   logic   [DATA_WIDTH-1:0]      west,
 
-    input   logic   [DATA_WIDTH-1:0]    weight,
+    input   logic   [DATA_WIDTH-1:0]      weight,
 
-    output  logic   [DATA_WIDTH-1:0]    south,
-    output  logic   [DATA_WIDTH-1:0]    east,
-
-    output  logic   [DATA_WIDTH-1:0]    mul_out
+    output  logic   [DATA_WIDTH*4-1:0]    south,
+    output  logic   [DATA_WIDTH-1:0]      east
 );
-
-    always_comb begin
-        mul_out = weight * west;
-    end
-
     always_ff @(posedge clk) begin
-        south <= north + mul_out;
+        south <= north + weight * west;
         east <= west;
     end
 
@@ -49,17 +43,17 @@ module systolic_ws_pe_array
     input   logic                       clk,
     input   logic                       reset, // reset not used, only for pin compatibility
 
-    input   logic   [DATA_WIDTH-1:0]    norths  [0:COL_NUM-1],
-    input   logic   [DATA_WIDTH-1:0]    wests   [0:ROW_NUM-1],
+    input   logic   [DATA_WIDTH*4-1:0]    norths  [0:COL_NUM-1],
+    input   logic   [DATA_WIDTH-1:0]      wests   [0:ROW_NUM-1],
 
-    input   logic   [DATA_WIDTH-1:0]    weights [0:ROW_NUM-1][0:COL_NUM-1],
+    input   logic   [DATA_WIDTH-1:0]      weights [0:ROW_NUM-1][0:COL_NUM-1],
 
-    output  logic   [DATA_WIDTH-1:0]    souths  [0:COL_NUM-1],
-    output  logic   [DATA_WIDTH-1:0]    easts   [0:ROW_NUM-1]
+    output  logic   [DATA_WIDTH*4-1:0]    souths  [0:COL_NUM-1],
+    output  logic   [DATA_WIDTH-1:0]      easts   [0:ROW_NUM-1]
 );
 
-    logic   [DATA_WIDTH-1:0]    ns_wires [0:ROW_NUM][0:COL_NUM-1];
-    logic   [DATA_WIDTH-1:0]    we_wires [0:ROW_NUM-1][0:COL_NUM];
+    logic   [DATA_WIDTH*4-1:0]    ns_wires [0:ROW_NUM][0:COL_NUM-1];
+    logic   [DATA_WIDTH-1:0]      we_wires [0:ROW_NUM-1][0:COL_NUM];
 
     genvar i, j;
     generate
@@ -88,9 +82,7 @@ module systolic_ws_pe_array
                     .weight(weights[i][j]),
 
                     .south(ns_wires[i+1][j]),
-                    .east(we_wires[i][j+1]),
-                    
-                    .mul_out()
+                    .east(we_wires[i][j+1])
                 );
             end
         end

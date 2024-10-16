@@ -39,6 +39,11 @@ class VtrExperiment(Experiment):
         allow_skipping: if True, then the experiment is skipped if the folder already exists with valid results
         adder_cin_global: tells VTR to connect the first cin of an adder/subtractor chain to (True) global GND/Vdd, or (False) a dummy adder. Default: False
         soft_multiplier_adders: tells VTR to use cascading adder chains if True, else a compressor tree, to implement soft multiplication. Default: False
+        compressor_tree_type: chooses a compressor tree type to implement:
+            - 'wallace': chooses Proposed Wallace (Asif & Kong, https://doi.org/10.1155/2014/343960)
+            - 'dadda': chooses Dadda (Dadda, L. (1990). Some schemes for parallel multipliers. IEEE Computer Society Press.)
+            - 'cascade': ignore this flag, and set soft_multiplier_adders to True.
+            - 'old': ignore all new implementations, and revert to vanilla VTR soft multiplication.
         avoid_mult: if True, then avoids using hard multipliers. Default: False
         force_denser_packing: if True, then force VPR to pack as tightly as possible. Default: False
         """
@@ -96,6 +101,7 @@ class VtrExperiment(Experiment):
             ]
         if adder_cin_global:
             cmd += ['-adder_cin_global'] # only works with self-modified fork: https://github.com/abdelfattah-lab/vtr-updated
+        
         if soft_multiplier_adders or compressor_tree_type == 'cascade':
             cmd += ['-soft_multiplier_adders'] # only works with self-modified fork: https://github.com/abdelfattah-lab/vtr-updated
         elif compressor_tree_type != 'cascade':
