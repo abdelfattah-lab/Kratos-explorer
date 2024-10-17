@@ -69,12 +69,17 @@ set_global_assignment -name SEARCH_PATH {search_path}
 set_instance_assignment -name VIRTUAL_PIN ON -to clk
 set_instance_assignment -name VIRTUAL_PIN ON -to reset
 
-set_instance_assignment -name VIRTUAL_PIN ON -to weights[*][*][*]
-set_instance_assignment -name VIRTUAL_PIN ON -to mat_in[*][*][*]
-set_instance_assignment -name VIRTUAL_PIN ON -to mat_out[*][*][*]
+set_instance_assignment -name VIRTUAL_PIN ON -to val_in
+set_instance_assignment -name VIRTUAL_PIN ON -to rdy_in
 
-set_instance_assignment -name VIRTUAL_PIN ON -to opaque_in[*]
-set_instance_assignment -name VIRTUAL_PIN ON -to opaque_out[*]
+set_instance_assignment -name VIRTUAL_PIN ON -to weights[*]
+set_instance_assignment -name VIRTUAL_PIN ON -to src_data_in[*]
+set_instance_assignment -name VIRTUAL_PIN ON -to src_wraddr[*]
+set_instance_assignment -name VIRTUAL_PIN ON -to src_wr_en[*]
+
+set_instance_assignment -name VIRTUAL_PIN ON -to result_rdaddr[*]
+set_instance_assignment -name VIRTUAL_PIN ON -to result_data_out[*]
+
 
 # effort level
 set_global_assignment -name OPTIMIZATION_MODE "HIGH PERFORMANCE EFFORT"

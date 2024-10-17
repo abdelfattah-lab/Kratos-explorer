@@ -73,17 +73,9 @@ set_instance_assignment -name VIRTUAL_PIN ON -to reset
 set_instance_assignment -name VIRTUAL_PIN ON -to val_in
 set_instance_assignment -name VIRTUAL_PIN ON -to rdy_in
 
-set_instance_assignment -name VIRTUAL_PIN ON -to fil[*][*][*][*][*]
-set_instance_assignment -name VIRTUAL_PIN ON -to img[*][*][*][*]
-set_instance_assignment -name VIRTUAL_PIN ON -to result[*][*][*][*]
-
-
-set_instance_assignment -name VIRTUAL_PIN ON -to img_rdaddress[*][*][*]
-set_instance_assignment -name VIRTUAL_PIN ON -to img_data_in[*][*][*]
-
-set_instance_assignment -name VIRTUAL_PIN ON -to result_wraddress[*][*][*]
-set_instance_assignment -name VIRTUAL_PIN ON -to result_data_out[*][*][*]
-set_instance_assignment -name VIRTUAL_PIN ON -to result_wren[*][*]
+set_instance_assignment -name VIRTUAL_PIN ON -to fil[*]
+set_instance_assignment -name VIRTUAL_PIN ON -to img[*]
+set_instance_assignment -name VIRTUAL_PIN ON -to result[*]
 
 
 # effort level

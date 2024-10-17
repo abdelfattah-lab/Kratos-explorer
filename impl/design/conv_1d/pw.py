@@ -75,23 +75,17 @@ set_global_assignment -name SEARCH_PATH {search_path}
 set_instance_assignment -name VIRTUAL_PIN ON -to clk
 set_instance_assignment -name VIRTUAL_PIN ON -to reset
 
+set_instance_assignment -name VIRTUAL_PIN ON -to fil[*]
+
 set_instance_assignment -name VIRTUAL_PIN ON -to val_in
 set_instance_assignment -name VIRTUAL_PIN ON -to rdy_in
 
-set_instance_assignment -name VIRTUAL_PIN ON -to fil[*][*][*][*]
-
-
-set_instance_assignment -name VIRTUAL_PIN ON -to img_rdaddr[*][*]
-set_instance_assignment -name VIRTUAL_PIN ON -to img_rddata[*][*]
-set_instance_assignment -name VIRTUAL_PIN ON -to img_wrdata[*][*]
-set_instance_assignment -name VIRTUAL_PIN ON -to img_wraddr[*][*]
+set_instance_assignment -name VIRTUAL_PIN ON -to img_wrdata[*]
+set_instance_assignment -name VIRTUAL_PIN ON -to img_wraddr[*]
 set_instance_assignment -name VIRTUAL_PIN ON -to img_wren[*]
 
-set_instance_assignment -name VIRTUAL_PIN ON -to result_rdaddr[*][*]
-set_instance_assignment -name VIRTUAL_PIN ON -to result_rddata[*][*]
-set_instance_assignment -name VIRTUAL_PIN ON -to result_wrdata[*][*]
-set_instance_assignment -name VIRTUAL_PIN ON -to result_wraddr[*][*]
-set_instance_assignment -name VIRTUAL_PIN ON -to result_wren[*]
+set_instance_assignment -name VIRTUAL_PIN ON -to result_rdaddr[*]
+set_instance_assignment -name VIRTUAL_PIN ON -to result_rddata[*]
 
 # effort level
 set_global_assignment -name OPTIMIZATION_MODE "HIGH PERFORMANCE EFFORT"

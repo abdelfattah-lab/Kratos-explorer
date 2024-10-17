@@ -74,11 +74,9 @@ set_global_assignment -name SEARCH_PATH {search_path}
 set_instance_assignment -name VIRTUAL_PIN ON -to clk
 set_instance_assignment -name VIRTUAL_PIN ON -to reset
 
-
-set_instance_assignment -name VIRTUAL_PIN ON -to fil[*][*][*][*][*]
-set_instance_assignment -name VIRTUAL_PIN ON -to img_data_in[*][*][*][*]
-set_instance_assignment -name VIRTUAL_PIN ON -to result_data_out[*][*][*][*]
-
+set_instance_assignment -name VIRTUAL_PIN ON -to fil[*]
+set_instance_assignment -name VIRTUAL_PIN ON -to img_data_in[*]
+set_instance_assignment -name VIRTUAL_PIN ON -to result_data_out[*]
 
 set_instance_assignment -name VIRTUAL_PIN ON -to opaque_in[*]
 set_instance_assignment -name VIRTUAL_PIN ON -to opaque_out[*]

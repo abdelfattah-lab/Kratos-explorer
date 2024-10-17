@@ -76,11 +76,11 @@ def get_gemmt_fu_params(base_params: dict[str, any], exp_root_dir: str = 'mini/g
     """
     Add GEMM-T Fully-Unrolled parameters.
     """
-    size = 8
+    size = 6
     return get_params(base_params, exp_root_dir, {
-        'row_num': size,
-        'col_num': size,
-        'length': size
+        'row_num': 7,
+        'col_num': 7,
+        'length': 8
     })
 
 def get_gemmt_rp_params(base_params: dict[str, any], exp_root_dir: str = 'mini/gemmt/rp') -> dict[str, any]:
