@@ -101,11 +101,13 @@ class VtrExperiment(Experiment):
             ]
         if adder_cin_global:
             cmd += ['-adder_cin_global'] # only works with self-modified fork: https://github.com/abdelfattah-lab/vtr-updated
-        
-        if soft_multiplier_adders or compressor_tree_type == 'cascade':
-            cmd += ['-soft_multiplier_adders'] # only works with self-modified fork: https://github.com/abdelfattah-lab/vtr-updated
-        elif compressor_tree_type != 'cascade':
-            cmd += ['-compressor_tree_type', compressor_tree_type] # only works with self-modified fork: https://github.com/abdelfattah-lab/vtr-updated
+
+        if compressor_tree_type != 'old':        
+            if soft_multiplier_adders or compressor_tree_type == 'cascade':
+                cmd += ['-soft_multiplier_adders'] # only works with self-modified fork: https://github.com/abdelfattah-lab/vtr-updated
+            elif compressor_tree_type != 'cascade':
+                cmd += ['-compressor_tree_type', compressor_tree_type] # only works with self-modified fork: https://github.com/abdelfattah-lab/vtr-updated
+
         if avoid_mult:
             cmd += ['-min_hard_mult_size', '9999'] # arbitrarily large multiplier size
         if ending is not None:
