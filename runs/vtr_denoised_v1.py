@@ -21,6 +21,7 @@ def run_vtr_denoised_v1(
         variable_arch_params: dict[str, list[any]],
         filter_params_baseline: list[str],
         new_arch: Type[ArchFactory] = GenExpParallelCCArchFactory,
+        base_arch: Type[ArchFactory] = BaseArchFactory,
         group_normalize_on: list[str] = None,
         normalize_each_group_on: dict[str, any] = None,
         x_axis: list[str] = None,
@@ -49,7 +50,8 @@ def run_vtr_denoised_v1(
     * filter_params_baseline:[str, ...], parameters (non-architecture) that are varied and should be extracted into a DataFrame (e.g., sparsity, data width).
     
     Optional arguments:
-    * new_arch:class<ArchFactory>, ArchFactory class to be used as 'new' architecture. Default: impl.arch.gen_exp.GenExpArchFactory  
+    * new_arch:class<ArchFactory>, ArchFactory class to be used as 'new' architecture. Default: impl.arch.stratix_IV.gen_exp.GenExpArchFactory  
+    * base_arch:class<ArchFactory>, ArchFactory class to be used as 'base' architecture. Default: impl.arch.stratix_IV.base.BaseArchFactory  
     * normalize_group_on: list[str], if provided, then perform group normalization as described in step 3. Provide an empty list to group the entire DataFrame as one group. Default: None
     * normalize_each_group_on:dict[str, any], if provided, then use a row that is uniquely identified by each column: value pair, to use as the baseline for all others in the group. Must be provided if group_normalize_on is not None. Default: None
     * x_axis: list[str], list of columns (1 or 2) that should be used as the graph's x-axis. Should be a subset of the keys of variable_arch_params. If None, then all keys of variable_arch_params is used. Default: None
@@ -92,7 +94,7 @@ def run_vtr_denoised_v1(
     runner = Runner()
 
     exp_types = {
-        'baseline': BaseArchFactory(),
+        'baseline': base_arch(),
         'new': new_arch(),
     }
     exp_results = {
