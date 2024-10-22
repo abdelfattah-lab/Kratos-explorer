@@ -1,5 +1,5 @@
 import structure.consts.keys as keys
-from impl.arch.base import BaseArchFactory
+from impl.arch.stratix_IV.base import BaseArchFactory
 
 from runs.benchmarks import get_params 
 import runs.benchmarks.kratos as kratos
