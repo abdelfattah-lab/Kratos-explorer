@@ -1,6 +1,6 @@
 import structure.consts.keys as keys
-from impl.arch.base import BaseArchFactory
-from impl.arch.gen_exp_parallel_carry import GenExpParallelCCArchFactory
+from impl.arch.stratix_IV.base import BaseArchFactory
+from impl.arch.stratix_IV.gen_exp_parallel_carry import GenExpParallelCCArchFactory
 from impl.exp.vtr import VtrExperiment
 from structure.run import Runner
 from structure.arch import ArchFactory
@@ -55,8 +55,8 @@ def run_vtr_denoised_v1(
     * x_axis: list[str], list of columns (1 or 2) that should be used as the graph's x-axis. Should be a subset of the keys of variable_arch_params. If None, then all keys of variable_arch_params is used. Default: None
     * group_cols: list[str], list of columns that should be used to group lines together. If None, then 'filter_params_baseline' is used. Default: None
     * group_cols_short_labels:dict[str, str], short translations for parameter keys (e.g., 'sparsity': 's').
-    * filter_results:list[str], list of parameters to extract from VPR (excluding Pb types blocks; see extract_blocks). All will be baseline normalized (unless also in avoid_norm) and plotted.
-    * extract_blocks:list[str], list of Pb type blocks to extract from VPR. All will be baseline normalized (unless also in avoid_norm) and plotted.
+    * filter_results:list[str], list of parameters to extract from VPR (excluding Pb types blocks; see filter_blocks). All will be baseline normalized (unless also in avoid_norm) and plotted.
+    * filter_blocks:list[str], list of Pb type blocks to extract from VPR. All will be baseline normalized (unless also in avoid_norm) and plotted.
     * seeds: (int, int, int), a tuple of 3 seeds to use for averaging.
     * merge_designs:bool, will take the geometric mean of all designs as the final result if True, else each design is saved as its own separate experiment. Default: False
     * avoid_norm:list[str], list of columns that should not be normalized (i.e., the value stays absolute). Default: empty list
