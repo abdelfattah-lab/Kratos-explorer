@@ -18,11 +18,20 @@ class QuartusExperiment(Experiment):
     def run(self) -> None:
         """
         Run on Quartus.
+
+        allow_skipping: if True, then the experiment is skipped if the folder already exists with valid results
         """
         self._prerun_check()
 
+        # get variables
+        allow_skipping = self.exp_params.get('allow_skipping', False)
+
         # generic experiment setup
-        self._setup_exp(DEFAULTS_EXP_QUARTUS, REQUIRED_KEYS_EXP)
+        self._setup_exp(DEFAULTS_EXP_QUARTUS, REQUIRED_KEYS_EXP, clear_exp_dir=not allow_skipping)
+
+        # Check for viable result (i.e., it has been run in the past)
+        if allow_skipping and self.get_result().get('status', False):
+            return
 
         # generate wrapper file
         wrapper_file_name = 'design.v'
