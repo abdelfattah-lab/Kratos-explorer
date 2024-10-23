@@ -60,7 +60,7 @@ def run_vtr_denoised_v1(
     * filter_results:list[str], list of parameters to extract from VPR (excluding Pb types blocks; see filter_blocks). All will be baseline normalized (unless also in avoid_norm) and plotted.
     * filter_blocks:list[str], list of Pb type blocks to extract from VPR. All will be baseline normalized (unless also in avoid_norm) and plotted.
     * seeds: (int, int, int), a tuple of 3 seeds to use for averaging.
-    * merge_designs:bool, will take the geometric mean of all designs as the final result if True, else each design is saved as its own separate experiment. Default: False
+    * merge_designs:bool, will take the geometric mean of all designs as the final result and generate an additional 'merged' result if True. Default: False
     * avoid_norm:list[str], list of columns that should not be normalized (i.e., the value stays absolute). Default: empty list
     * translations:dict[str, str], dictionary mapping columns -> long names. If not present in the dictionary, then the column name is re-used. Default: empty dictionary
     
@@ -175,15 +175,15 @@ def run_vtr_denoised_v1(
                 else:
                     # multiply columns
                     merged = merge_op(merged, seed_mean, lambda a, b: a * b, flt)
-            else:
-                # save DataFrame individually
-                exp_results[exp_type][key] = seed_mean
+            
+            # save DataFrame individually
+            exp_results[exp_type][key] = seed_mean
 
         if merge_designs:
             # drop all other keys
             keys_to_drop = list(exp_results[exp_type].keys())
-            for key in keys_to_drop:
-                exp_results[exp_type].pop(key, None)
+            # for key in keys_to_drop:
+            #     exp_results[exp_type].pop(key, None)
             
             # take the n-th root (geometric mean)
             for col in filter_results:
