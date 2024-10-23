@@ -11,9 +11,13 @@ from util.calc import merge_op
 # VTR experiment
 from impl.exp.vtr import VtrExperiment
 
-# architectures
-from impl.arch.base import BaseArchFactory
-from impl.arch.gen_exp_parallel_carry import GenExpParallelCCArchFactory
+# Stratix IV Architectures
+# from impl.arch.stratix_IV.base import BaseArchFactory
+# from impl.arch.stratix_IV.gen_exp_parallel_carry import GenExpParallelCCArchFactory
+
+# Stratix 10 Architectures
+from impl.arch.stratix_10.base import BaseArchFactory
+from impl.arch.stratix_10.parallel_carry import ParallelCarryArchFactory
 
 # Conv-1D
 from impl.design.conv_1d.fu import Conv1dFuDesign

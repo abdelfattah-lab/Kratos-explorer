@@ -29,13 +29,13 @@ if params_file_path is None or not os.path.exists(params_file_path):
 # get architecture
 arch = None
 if args.arch_module == 'base':
-    from impl.arch.base import BaseArchFactory
+    from impl.arch.stratix_IV.base import BaseArchFactory
     arch = BaseArchFactory()
 elif args.arch_module == 'gen_exp':
-    from impl.arch.gen_exp import GenExpArchFactory
+    from impl.arch.stratix_IV.gen_exp import GenExpArchFactory
     arch = GenExpArchFactory()
 elif args.arch_module == 'gen_exp_fpop':
-    from impl.arch.gen_exp_fpop import GenExpFpopArchFactory
+    from impl.arch.stratix_IV.gen_exp_fpop import GenExpFpopArchFactory
     arch = GenExpFpopArchFactory()
 else:
     log_error(f"arch_module {args.arch_module} is not recognized.")

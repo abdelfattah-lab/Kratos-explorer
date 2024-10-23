@@ -1,7 +1,7 @@
 from structure.arch import ArchFactory
 from structure.util import ParamsChecker
-from math import floor
-from util.flow import distribute_pin_edges
+from math import floor, comb
+from util.flow import distribute_pins
 
 TEMPLATE = '''<!-- Comments are removed to save file size -->
 <architecture>
@@ -91,10 +91,13 @@ TEMPLATE = '''<!-- Comments are removed to save file size -->
         <equivalent_sites>
           <site pb_type="clb" pin_mapping="direct"/>
         </equivalent_sites>
-        <input name="I" num_pins="{num_pins_clb}"/>
-        <input name="cin" num_pins="{num_pins_cin}"/>
+        <input name="I1" num_pins="{num_pins_clb}" equivalent="full"/>
+        <input name="I2" num_pins="{num_pins_clb}" equivalent="full"/>
+        <input name="I3" num_pins="{num_pins_clb}" equivalent="full"/>
+        <input name="I4" num_pins="{num_pins_clb}" equivalent="full"/>
+        <input name="cin" num_pins="1"/>
         <output name="O" num_pins="{num_opins_clb}" equivalent="none"/>
-        <output name="cout" num_pins="{num_pins_cout}"/>
+        <output name="cout" num_pins="1"/>
         <clock name="clk" num_pins="1"/>
         <fc in_type="frac" in_val="{fc_in_clb}" out_type="frac" out_val="{fc_out_clb}">
           <fc_override port_name="cin" fc_type="frac" fc_val="0"/>
@@ -261,10 +264,13 @@ TEMPLATE = '''<!-- Comments are removed to save file size -->
        routing area up significantly, we estimate into the ~70% range. 
        -->
     <pb_type name="clb">
-      <input name="I" num_pins="{num_pins_clb}"/>
-      <input name="cin" num_pins="{num_pins_cin}"/>
+      <input name="I1" num_pins="{num_pins_clb}" equivalent="full"/>
+      <input name="I2" num_pins="{num_pins_clb}" equivalent="full"/>
+      <input name="I3" num_pins="{num_pins_clb}" equivalent="full"/>
+      <input name="I4" num_pins="{num_pins_clb}" equivalent="full"/>
+      <input name="cin" num_pins="1"/>
       <output name="O" num_pins="{num_opins_clb}" equivalent="none"/>
-      <output name="cout" num_pins="{num_pins_cout}"/>
+      <output name="cout" num_pins="1"/>
       <clock name="clk" num_pins="1"/>
       <!-- Describe fracturable logic element.  
              Each fracturable logic element has a K-LUT that can alternatively operate as two (K-1)-LUTs with shared inputs. 
@@ -520,7 +526,17 @@ TEMPLATE = '''<!-- Comments are removed to save file size -->
         <direct name="clbouts1" input="fle[{fle_pins_last_index}:0].out[0:0]" output="clb.O[{clb_opin_range_1}]"/>
         <direct name="clbouts2" input="fle[{fle_pins_last_index}:0].out[1:1]" output="clb.O[{clb_opin_range_2}]"/>
         <!-- Carry chain links -->
-        {carry_chain_links}
+        <direct name="carry_in" input="clb.cin" output="fle[0:0].cin">
+          <pack_pattern name="chain" in_port="clb.cin" out_port="fle[0:0].cin"/>
+        </direct>
+        <direct name="carry_out" input="fle[{fle_pins_last_index}:{fle_pins_last_index}].cout" output="clb.cout">
+          <delay_constant max="1.45e-11" in_port="fle[{fle_pins_last_index}:{fle_pins_last_index}].cout" out_port="clb.cout"/>
+          <pack_pattern name="chain" in_port="fle[{fle_pins_last_index}:{fle_pins_last_index}].cout" out_port="clb.cout"/>
+        </direct>
+        <direct name="carry_link" input="fle[{fle_pins_2last_index}:0].cout" output="fle[{fle_pins_last_index}:1].cin">
+          <delay_constant max="1.45e-11" in_port="fle[{fle_pins_2last_index}:0].cout" out_port="fle[{fle_pins_last_index}:1].cin"/>
+          <pack_pattern name="chain" in_port="fle[{fle_pins_2last_index}:0].cout" out_port="fle[{fle_pins_last_index}:1].cin"/>
+        </direct>
       </interconnect>
     </pb_type>
     <!-- Define general purpose logic block (CLB) ends -->
@@ -1288,9 +1304,9 @@ TEMPLATE = '''<!-- Comments are removed to save file size -->
 </architecture>
 '''
 
-def get_common_configs(ble_count: int, lut_size: int) -> dict[str, any]:
+def get_pin_counts(ble_count: int, CLB_groups_per_xb: int, lut_size: int) -> dict[str, any]:
     """
-    Return common parameters.
+    Return pin counts.
     """
     ret = {}
 
@@ -1302,7 +1318,12 @@ def get_common_configs(ble_count: int, lut_size: int) -> dict[str, any]:
 
     # CLB
     CLB_pins_total = round(lut_size_small / 2 * (4 * ble_count + 1)) # using empirical formula K'(N'+1)/2, with K' = K - 1, N' = 4N
-    ret['I_CLB'] = CLB_pins_total
+    CLB_rem = CLB_pins_total % 4
+    if CLB_rem > 0:
+      # round up to nearest multiple of 4
+      CLB_pins_total += 4 - CLB_rem
+    CLB_pins_per_group = int(CLB_pins_total / 4)
+    ret['I_CLB'] = CLB_pins_per_group
     ret['O_CLB'] = ble_count * 2
 
     # FLE
@@ -1310,126 +1331,98 @@ def get_common_configs(ble_count: int, lut_size: int) -> dict[str, any]:
     ret['I_shared'] = min(shared_small, lut_size_small - 2) # force at least 2 distinct inputs
     
     num_pins_small = int(2 * (lut_size_small - shared_small) + shared_small) # total input count
-    num_pins_fle = max(num_pins_small, lut_size_large) # take minimum required input pins for FLE
+    num_pins_fle = max(comb(4, CLB_groups_per_xb), num_pins_small, lut_size_large) # take minimum required input pins for FLE
     ret['I_BLE_total'] = num_pins_small
     ret['I_FLE'] = num_pins_fle
 
     return ret
 
-def gen_carry_chain_links(ble_count, mux_stride=1):
-    # mux inputs from FLE 2 - N
-    mux_ins = ''
-    if ble_count > 1:
-        mux_ins_strs = []
-        for x in range(1, ble_count):
-          is_mux = x % mux_stride == 0
-          mux_ins_strs.append(f"""<{'mux' if is_mux else 'direct'} name="cin{x}" input="{'clb.cin ' if is_mux else ''}fle[{x-1}:{x-1}].cout" output="fle[{x}:{x}].cin"/>""")
-          mux_ins = '\n'.join(mux_ins_strs)
-
-    return f"""
-<direct name="cin0" input="clb.cin" output="fle[0:0].cin">
-    <pack_pattern name="chain" in_port="clb.cin[0:0]" out_port="fle[0:0].cin"/>
-</direct>
-{mux_ins}
-<direct name="couts" input="fle[{ble_count-1}:{ble_count-1}].cout" output="clb.cout">
-    <pack_pattern name="chain" in_port="fle[{ble_count-1}:{ble_count-1}].cout" out_port="clb.cout"/>
-</direct>
-"""   
-   
-def gen_carry_link(name, start_i, end_i):
-   e1, e2 = end_i - 1, end_i
-   s1, s2 = start_i, start_i + 1
-   return f"""<direct name="{name}" input="fle[{e1}:{s1}].cout" output="fle[{e2}:{s2}].cin">
-  <delay_constant max="1.45e-11" in_port="fle[{e1}:{s1}].cout" out_port="fle[{e2}:{s2}].cin"/>
-  <pack_pattern name="chain" in_port="fle[{e1}:{s1}].cout" out_port="fle[{e2}:{s2}].cin"/>
-</direct>"""
-   
-
-def gen_xbars(coffe_dict, ble_count, num_pins_clb, num_pins_ble, fc_local):
-    """
-    We map groups of input pins and feedback pins to each individual BLE pin, according to local interconnect population (fpop).
-    """
-    total_pins_ble = ble_count * num_pins_ble
-    input_ranges = distribute_pin_edges(num_pins_clb, total_pins_ble, fc_local)
-    feedback_ranges = distribute_pin_edges(ble_count, total_pins_ble, fc_local)
-
-    xbar_template = """<complete name="lut{i}" input="{clb_inputs} {feedback_xb}" output="{fle_pin_label}">
-{delay_matrix_clb}
-{delay_matrix_feedback}
+def gen_xbars(coffe_dict, ble_count, num_pins_ble, num_feedback_ble, clb_input_groups = ['I1', 'I2', 'I3', 'I4'], clb_input_groups_per_xbar = 2):
+    clb_input_group_count = len(clb_input_groups)
+    
+    if clb_input_groups_per_xbar > clb_input_group_count:
+        raise ValueError("Number of CLB input groups per crossbar cannot exceed number of CLB input groups!")
+    
+    all_clb_index_combinations = distribute_pins(clb_input_group_count, clb_input_groups_per_xbar, num_pins_ble)
+    all_feedback_group_index_combinations = distribute_pins(ble_count, num_feedback_ble, num_pins_ble)
+    clb_i = 0
+    max_clb_i = len(all_clb_index_combinations) - 1
+    feedback_i = 0
+    max_feedback_i = len(all_feedback_group_index_combinations) - 1
+    
+    xbar_template = """<complete name="lut{i}" input="{clb_inputs} {feedback_xb}" output="fle[{fle_last_index}:0].in[{i}:{i}]">
+{delay_constant_clb}
+{delay_constant_feedback}
 </complete>"""
 
     T_local_CLB_routing = coffe_dict['T_local_CLB_routing']
     T_local_feedback = coffe_dict['T_local_feedback']
     xbars = []
+    xbar_count = 0
+    while xbar_count < num_pins_ble:
+        clb_group = all_clb_index_combinations[clb_i]
+        clb_input_group_labels = [f"clb.{clb_input_groups[x]}" for x in clb_group]
+        clb_inputs = ' '.join(clb_input_group_labels)
+        delay_constant_clb = '\n'.join(
+            f'<delay_constant max="{T_local_CLB_routing}" in_port="{label}" out_port="fle.in[{xbar_count}:{xbar_count}]"/>' for label in clb_input_group_labels
+        )
 
-    for i, ((input_len, input_range), (feedback_len, feedback_range)) in enumerate(zip(input_ranges, feedback_ranges)):
-        # calculate the target FLE pin
-        fle_index = i // num_pins_ble
-        fle_pin_index = i - num_pins_ble * fle_index
-        fle_pin_label = f'fle[{fle_index}:{fle_index}].in[{fle_pin_index}:{fle_pin_index}]'
-        
-        # generate CLB to FLE labels and delay constants
-        clb_input_labels = [f"clb.I[{rng}]" for rng in input_range]
-        clb_inputs = ' '.join(clb_input_labels)
-        delays_clb = '\n'.join(str(T_local_CLB_routing) for _ in range(input_len))
-        delay_matrix_clb = f"""<delay_matrix type="max" in_port="{clb_inputs}" out_port="{fle_pin_label}">
-  {delays_clb}
-</delay_matrix>"""
-
-        # generate feedback labels and delay constants
-        feedback_xb_labels = [f'fle[{rng}].out' for rng in feedback_range]
-        feedback_xb = ' '.join(feedback_xb_labels)
-        delays_feedback = '\n'.join(str(T_local_feedback) for _ in range(feedback_len * 2)) # 2 outputs per feedback group
-        delay_matrix_feedback = f"""<delay_matrix type="max" in_port="{feedback_xb}" out_port="{fle_pin_label}">
-  {delays_feedback}
-</delay_matrix>"""
-        
+        feedback_group = all_feedback_group_index_combinations[feedback_i]
+        feedback_xb = ' '.join(
+            f'fle[{x}:{x}].out' for x in feedback_group
+        )
+        delay_constant_feedback = '\n'.join(
+            f'<delay_constant max="{T_local_feedback}" in_port="fle[{x}:{x}].out" out_port="fle.in[{xbar_count}:{xbar_count}]"/>' for x in feedback_group
+        )
         xbars.append(xbar_template.format(
-            i=i,
-            fle_pin_label=fle_pin_label,
+            i=xbar_count,
+            fle_last_index=ble_count - 1,
             clb_inputs=clb_inputs,
             feedback_xb=feedback_xb,
-            delay_matrix_clb=delay_matrix_clb,
-            delay_matrix_feedback=delay_matrix_feedback
+            delay_constant_clb=delay_constant_clb,
+            delay_constant_feedback=delay_constant_feedback
         ))
+
+        xbar_count += 1
+        clb_i += 1
+        if clb_i > max_clb_i:
+            clb_i = 0 # rotate to 0
+        feedback_i += 1
+        if feedback_i > max_feedback_i:
+            feedback_i = 0 # rotate to 0
 
     return '\n'.join(xbars)
 
 """
 configurable parameters, all integer
-*ble_count = 10
-*cin_mux_stride = 1
-*lut_size = 6
+* fc_in_clb = 0.15
+* fc_out_clb = 0.10
+* CLB_groups_per_xb = 2
+* lut_size = 6
 - lut_size_small = lut_size - 1
 - lut_size_large = lut_size
-*fc_local = 0.5
-*fc_in = 0.15
-*fc_out = 0.1
-*fs = 3
 *adder size is not supported yet
 
 # create xml parameters
 """
 def get_config_dict(coffe_dict: dict[str, any], 
-    ble_count: int,
-    cin_mux_stride: int,
+    ble_count: int, 
+    CLB_groups_per_xb: int, 
     lut_size: int,
-    fc_local: float,
     fc_in: float,
     fc_out: float,
     fs: int,
 ) -> dict[str, any]:
     config_dict = {}
-    common_dict = get_common_configs(ble_count, lut_size)
+    pin_dict = get_pin_counts(ble_count, CLB_groups_per_xb, lut_size)
 
-    lut_size_small = common_dict['K_small']
-    lut_size_large = common_dict['K_large']
+    lut_size_small = pin_dict['K_small']
+    lut_size_large = pin_dict['K_large']
 
     # CLB
-    num_pins_clb = common_dict['I_CLB']
-    num_opins_clb = common_dict['O_CLB']
-    config_dict['num_pins_clb'] = num_pins_clb
-    config_dict['num_opins_clb'] = num_opins_clb
+    num_opins_clb = ble_count * 2 # output pins
+    config_dict['num_pins_clb'] = pin_dict['I_CLB']
+    config_dict['num_opins_clb'] = pin_dict['O_CLB']
     config_dict['clb_opin_range_1'] = f"{ble_count - 1}:0"
     config_dict['clb_opin_range_2'] = f"{num_opins_clb - 1}:{ble_count}"
 
@@ -1439,12 +1432,11 @@ def get_config_dict(coffe_dict: dict[str, any],
 
     # FLE
     config_dict['num_pb_fle'] = ble_count # cluster size
-    num_pins_small = common_dict['I_BLE_total']
-    num_pins_fle = common_dict['I_FLE']
-    fle_pins_last_index = ble_count - 1
+    num_pins_small = pin_dict['I_BLE_total']
+    num_pins_fle = pin_dict['I_FLE']
     config_dict['num_pins_fle'] = num_pins_fle
-    config_dict['fle_pins_last_index'] = fle_pins_last_index
-    config_dict['fle_pins_2last_index'] = fle_pins_last_index - 1
+    config_dict['fle_pins_last_index'] = ble_count - 1
+    config_dict['fle_pins_2last_index'] = ble_count - 2
 
     # BLE-S
     num_pins_ble_s = lut_size_small
@@ -1465,27 +1457,22 @@ def get_config_dict(coffe_dict: dict[str, any],
     config_dict['lutL_delat_mat'] = '\n'.join(['261e-12'] * lut_size_large)
     config_dict['fle_to_bleL_pin_index'] = str(lut_size_large-1) + ':0'
 
-    # depop xbar according to Fclocal%
-    config_dict['fle_input_xbar'] = gen_xbars(coffe_dict, ble_count, num_pins_clb, num_pins_fle, fc_local)
-    
-    # carry chain links
-    config_dict['num_pins_cin'] = 1
-    config_dict['num_pins_cout'] = 1 
-    config_dict['carry_chain_links'] = gen_carry_chain_links(ble_count, mux_stride=cin_mux_stride)
+    # depop xbar according to (CLB_groups_per_xb/4) %
+    num_feedback_fle = max(1, round(CLB_groups_per_xb / 4 * ble_count)) # ensure at least 1 feedback BLE per xbar
+    config_dict['fle_input_xbar'] = gen_xbars(coffe_dict, ble_count, num_pins_fle, num_feedback_fle, clb_input_groups_per_xbar=CLB_groups_per_xb)
     return config_dict | coffe_dict
 
 # Specify the parameters and their default values for this architecture here.
 DEFAULTS = {
     'ble_count': 10,
-    'cin_mux_stride': 1,
+    'CLB_groups_per_xb': 2,
     'lut_size': 6,
-    'fc_local': 0.5,
     'fc_in': 0.15,
     'fc_out': 0.10,
     'fs': 3,
 }
 
-class GenExpFpopArchFactory(ArchFactory, ParamsChecker):
+class GenExpArchFactory(ArchFactory, ParamsChecker):
     """
     v1 of spec: https://confluence.cornell.edu/display/abdelfattah/Architecture+Diagrams
     """
@@ -1494,21 +1481,19 @@ class GenExpFpopArchFactory(ArchFactory, ParamsChecker):
       return self.autofill_defaults(DEFAULTS, params)
     
     def get_name(self, 
-        ble_count: int,
-        cin_mux_stride: int,
+        ble_count: int, 
+        CLB_groups_per_xb: int, 
         lut_size: int,
-        fc_local: float,
         fc_in: float,
         fc_out: float,
         fs: int,
     **kwargs) -> str:
-      return f"v1.2_N.{ble_count}_K.{lut_size}_cin.{cin_mux_stride}_Fcl.{fc_local}_Fci.{fc_in}_Fco.{fc_out}_Fs.{fs}"
+      return f"type.s4-gen-exp_N.{ble_count}_K.{lut_size}_xb.{CLB_groups_per_xb}_Fci.{fc_in}_Fco.{fc_out}_Fs.{fs}"
 
     def get_arch(self, 
-        ble_count: int,
-        cin_mux_stride: int,
+        ble_count: int, 
+        CLB_groups_per_xb: int, 
         lut_size: int,
-        fc_local: float,
         fc_in: float,
         fc_out: float,
         fs: int,
@@ -1521,8 +1506,8 @@ class GenExpFpopArchFactory(ArchFactory, ParamsChecker):
       coffe_dict = self.get_coffe_archive_values(
          search_kwargs=dict(
             ble_count=ble_count,
+            CLB_groups_per_xb=CLB_groups_per_xb,
             lut_size=lut_size,
-            fc_local=fc_local,
             fc_in=fc_in,
             fc_out=fc_out,
             fs=fs,
@@ -1541,17 +1526,17 @@ class GenExpFpopArchFactory(ArchFactory, ParamsChecker):
          )
       )
 
-      return TEMPLATE.format(**get_config_dict(coffe_dict, ble_count, cin_mux_stride, lut_size, fc_local, fc_in, fc_out, fs))
+      return TEMPLATE.format(**get_config_dict(coffe_dict, ble_count, CLB_groups_per_xb, lut_size, fc_in, fc_out, fs))
     
     def get_coffe_input_dict(self, 
-        ble_count: int,
+        ble_count: int, 
+        CLB_groups_per_xb: int, 
         lut_size: int,
-        fc_local: float,
         fc_in: float,
         fc_out: float,
         fs: int,
     **kwargs) -> dict:
-        common_dict = get_common_configs(ble_count, lut_size)
+        pin_dict = get_pin_counts(ble_count, CLB_groups_per_xb, lut_size)
 
         return dict(
             #######################################
@@ -1564,7 +1549,7 @@ class GenExpFpopArchFactory(ArchFactory, ParamsChecker):
             #~25% more than required W on average
             W=125,
             L=4,
-            I=common_dict['I_CLB'],
+            I=pin_dict['I_CLB'] * 4,
             Fs=fs,
             Fcin=fc_in,
             Fcout=fc_out,
@@ -1573,7 +1558,7 @@ class GenExpFpopArchFactory(ArchFactory, ParamsChecker):
             Or=2,
             # Number of BLE outputs to local routing
             Ofb=2,
-            Fclocal = fc_local,
+            Fclocal = round(CLB_groups_per_xb/4, 2),
 
             # Register select:
             # Defines whether the FF can accept its input directly from a BLE input or not.
@@ -1590,7 +1575,7 @@ class GenExpFpopArchFactory(ArchFactory, ParamsChecker):
             use_fluts = True,
 
             # can be as large as K-1
-            independent_inputs = common_dict['K_small'] - common_dict['I_shared'],
+            independent_inputs = pin_dict['K_small'] - pin_dict['I_shared'],
 
 
             enable_carry_chain = 1,

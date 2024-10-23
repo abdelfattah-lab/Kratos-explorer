@@ -1,6 +1,6 @@
 import structure.consts.keys as keys
-from impl.arch.base import BaseArchFactory
-from impl.arch.gen_exp_parallel_carry import GenExpParallelCCArchFactory
+from impl.arch.stratix_IV.base import BaseArchFactory
+from impl.arch.stratix_IV.gen_exp_parallel_carry import GenExpParallelCCArchFactory
 from impl.exp.vtr import VtrExperiment
 from structure.run import Runner
 from structure.arch import ArchFactory
@@ -21,6 +21,7 @@ def run_vtr_denoised_v1(
         variable_arch_params: dict[str, list[any]],
         filter_params_baseline: list[str],
         new_arch: Type[ArchFactory] = GenExpParallelCCArchFactory,
+        base_arch: Type[ArchFactory] = BaseArchFactory,
         group_normalize_on: list[str] = None,
         normalize_each_group_on: dict[str, any] = None,
         x_axis: list[str] = None,
@@ -49,16 +50,17 @@ def run_vtr_denoised_v1(
     * filter_params_baseline:[str, ...], parameters (non-architecture) that are varied and should be extracted into a DataFrame (e.g., sparsity, data width).
     
     Optional arguments:
-    * new_arch:class<ArchFactory>, ArchFactory class to be used as 'new' architecture. Default: impl.arch.gen_exp.GenExpArchFactory  
+    * new_arch:class<ArchFactory>, ArchFactory class to be used as 'new' architecture. Default: impl.arch.stratix_IV.gen_exp.GenExpArchFactory  
+    * base_arch:class<ArchFactory>, ArchFactory class to be used as 'base' architecture. Default: impl.arch.stratix_IV.base.BaseArchFactory  
     * normalize_group_on: list[str], if provided, then perform group normalization as described in step 3. Provide an empty list to group the entire DataFrame as one group. Default: None
     * normalize_each_group_on:dict[str, any], if provided, then use a row that is uniquely identified by each column: value pair, to use as the baseline for all others in the group. Must be provided if group_normalize_on is not None. Default: None
     * x_axis: list[str], list of columns (1 or 2) that should be used as the graph's x-axis. Should be a subset of the keys of variable_arch_params. If None, then all keys of variable_arch_params is used. Default: None
     * group_cols: list[str], list of columns that should be used to group lines together. If None, then 'filter_params_baseline' is used. Default: None
     * group_cols_short_labels:dict[str, str], short translations for parameter keys (e.g., 'sparsity': 's').
-    * filter_results:list[str], list of parameters to extract from VPR (excluding Pb types blocks; see extract_blocks). All will be baseline normalized (unless also in avoid_norm) and plotted.
-    * extract_blocks:list[str], list of Pb type blocks to extract from VPR. All will be baseline normalized (unless also in avoid_norm) and plotted.
+    * filter_results:list[str], list of parameters to extract from VPR (excluding Pb types blocks; see filter_blocks). All will be baseline normalized (unless also in avoid_norm) and plotted.
+    * filter_blocks:list[str], list of Pb type blocks to extract from VPR. All will be baseline normalized (unless also in avoid_norm) and plotted.
     * seeds: (int, int, int), a tuple of 3 seeds to use for averaging.
-    * merge_designs:bool, will take the geometric mean of all designs as the final result if True, else each design is saved as its own separate experiment. Default: False
+    * merge_designs:bool, will take the geometric mean of all designs as the final result and generate an additional 'merged' result if True. Default: False
     * avoid_norm:list[str], list of columns that should not be normalized (i.e., the value stays absolute). Default: empty list
     * translations:dict[str, str], dictionary mapping columns -> long names. If not present in the dictionary, then the column name is re-used. Default: empty dictionary
     
@@ -92,7 +94,7 @@ def run_vtr_denoised_v1(
     runner = Runner()
 
     exp_types = {
-        'baseline': BaseArchFactory(),
+        'baseline': base_arch(),
         'new': new_arch(),
     }
     exp_results = {
@@ -173,15 +175,15 @@ def run_vtr_denoised_v1(
                 else:
                     # multiply columns
                     merged = merge_op(merged, seed_mean, lambda a, b: a * b, flt)
-            else:
-                # save DataFrame individually
-                exp_results[exp_type][key] = seed_mean
+            
+            # save DataFrame individually
+            exp_results[exp_type][key] = seed_mean
 
         if merge_designs:
             # drop all other keys
             keys_to_drop = list(exp_results[exp_type].keys())
-            for key in keys_to_drop:
-                exp_results[exp_type].pop(key, None)
+            # for key in keys_to_drop:
+            #     exp_results[exp_type].pop(key, None)
             
             # take the n-th root (geometric mean)
             for col in filter_results:

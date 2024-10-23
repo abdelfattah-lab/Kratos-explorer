@@ -5,6 +5,9 @@ from runs.vtr_denoised_v1 import run_vtr_denoised_v1
 import runs.benchmarks.kratos as kratos
 import runs.benchmarks.kratos_mini as mini
 
+# v1.2
+from impl.arch.stratix_IV.gen_exp_fpop import GenExpFpopArchFactory
+
 from impl.design.conv_1d.fu import Conv1dFuDesign
 from impl.design.conv_1d.pw import Conv1dPwDesign
 from impl.design.conv_2d.fu import Conv2dFuDesign
