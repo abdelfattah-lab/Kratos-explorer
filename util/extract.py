@@ -3,11 +3,13 @@ Convenience functions for data extraction from external tool reports (e.g., Quar
 """
 
 import re, os
+import math
 
 def extract_info_quartus(path='.'):
     # read information
     fit_successfull = False
     alm_usage = -1
+    virtual_pins = -1
     fmax = -1.0
     rfmax = -1.0
     lut_logic = {}
@@ -68,6 +70,10 @@ def extract_info_quartus(path='.'):
                 'pro': 'Logic utilization (ALMs needed / total ALMs on device)',
                 'standard': 'ALMs:  partially or completely used',
             }
+            virtual_pins_search = {
+                'pro': 'Virtual pins',
+                'standard': 'Virtual pins',
+            }
 
             line = place_rpt_file.readline()
             while line:
@@ -112,14 +118,25 @@ def extract_info_quartus(path='.'):
                     if alm_match:
                         alm_usage = int(alm_match.group(1).replace(',', ''))
 
+                # Grab virtual pins
+                if virtual_pins_search[quartus_edition] in line:
+                    virtual_pins_match = re.search(r";\s*([\d,]+)\s*;", line)
+                    if virtual_pins_match:
+                        virtual_pins = int(virtual_pins_match.group(1).replace(',', ''))
                 line = place_rpt_file.readline()
 
+            # Calculate LUT total
             if lut_rt >= 0 and len(lut_logic) > 0:
                 lut_total = lut_rt + sum(lut_logic.values())
+            
+            # Calculate ALMs without virtual I/O
+            if virtual_pins > 0 and alm_usage >= 0:
+                alm_usage -= math.ceil(virtual_pins / 2)
 
     return {
         'status': fit_successfull, 
         'alm': alm_usage, 
+        'virtual_pins': virtual_pins,
         'fmax': fmax, 
         'rfmax': rfmax, 
         **{f"lut{size}": count for size, count in lut_logic.items()}, 
